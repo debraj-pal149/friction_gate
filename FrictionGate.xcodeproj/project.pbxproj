@@ -1,0 +1,563 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXContainerItemProxy section */
+		D52906DE2FE67D9F0005F066 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D52906C52FE67D9D0005F066 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D52906CC2FE67D9D0005F066;
+			remoteInfo = FrictionGate;
+		};
+		D52906E82FE67D9F0005F066 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D52906C52FE67D9D0005F066 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D52906CC2FE67D9D0005F066;
+			remoteInfo = FrictionGate;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		D52906CD2FE67D9D0005F066 /* FrictionGate.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FrictionGate.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D52906DD2FE67D9F0005F066 /* FrictionGateTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FrictionGateTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		D52906E72FE67D9F0005F066 /* FrictionGateUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FrictionGateUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		D52906CF2FE67D9D0005F066 /* FrictionGate */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = FrictionGate;
+			sourceTree = "<group>";
+		};
+		D52906E02FE67D9F0005F066 /* FrictionGateTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = FrictionGateTests;
+			sourceTree = "<group>";
+		};
+		D52906EA2FE67D9F0005F066 /* FrictionGateUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = FrictionGateUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		D52906CA2FE67D9D0005F066 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D52906DA2FE67D9F0005F066 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D52906E42FE67D9F0005F066 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		D52906C42FE67D9D0005F066 = {
+			isa = PBXGroup;
+			children = (
+				D52906CF2FE67D9D0005F066 /* FrictionGate */,
+				D52906E02FE67D9F0005F066 /* FrictionGateTests */,
+				D52906EA2FE67D9F0005F066 /* FrictionGateUITests */,
+				D52906CE2FE67D9D0005F066 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		D52906CE2FE67D9D0005F066 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				D52906CD2FE67D9D0005F066 /* FrictionGate.app */,
+				D52906DD2FE67D9F0005F066 /* FrictionGateTests.xctest */,
+				D52906E72FE67D9F0005F066 /* FrictionGateUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		D52906CC2FE67D9D0005F066 /* FrictionGate */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D52906F12FE67D9F0005F066 /* Build configuration list for PBXNativeTarget "FrictionGate" */;
+			buildPhases = (
+				D52906C92FE67D9D0005F066 /* Sources */,
+				D52906CA2FE67D9D0005F066 /* Frameworks */,
+				D52906CB2FE67D9D0005F066 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				D52906CF2FE67D9D0005F066 /* FrictionGate */,
+			);
+			name = FrictionGate;
+			packageProductDependencies = (
+			);
+			productName = FrictionGate;
+			productReference = D52906CD2FE67D9D0005F066 /* FrictionGate.app */;
+			productType = "com.apple.product-type.application";
+		};
+		D52906DC2FE67D9F0005F066 /* FrictionGateTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D52906F42FE67D9F0005F066 /* Build configuration list for PBXNativeTarget "FrictionGateTests" */;
+			buildPhases = (
+				D52906D92FE67D9F0005F066 /* Sources */,
+				D52906DA2FE67D9F0005F066 /* Frameworks */,
+				D52906DB2FE67D9F0005F066 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				D52906DF2FE67D9F0005F066 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				D52906E02FE67D9F0005F066 /* FrictionGateTests */,
+			);
+			name = FrictionGateTests;
+			packageProductDependencies = (
+			);
+			productName = FrictionGateTests;
+			productReference = D52906DD2FE67D9F0005F066 /* FrictionGateTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		D52906E62FE67D9F0005F066 /* FrictionGateUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D52906F72FE67D9F0005F066 /* Build configuration list for PBXNativeTarget "FrictionGateUITests" */;
+			buildPhases = (
+				D52906E32FE67D9F0005F066 /* Sources */,
+				D52906E42FE67D9F0005F066 /* Frameworks */,
+				D52906E52FE67D9F0005F066 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				D52906E92FE67D9F0005F066 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				D52906EA2FE67D9F0005F066 /* FrictionGateUITests */,
+			);
+			name = FrictionGateUITests;
+			packageProductDependencies = (
+			);
+			productName = FrictionGateUITests;
+			productReference = D52906E72FE67D9F0005F066 /* FrictionGateUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		D52906C52FE67D9D0005F066 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1620;
+				LastUpgradeCheck = 1620;
+				TargetAttributes = {
+					D52906CC2FE67D9D0005F066 = {
+						CreatedOnToolsVersion = 16.2;
+					};
+					D52906DC2FE67D9F0005F066 = {
+						CreatedOnToolsVersion = 16.2;
+						TestTargetID = D52906CC2FE67D9D0005F066;
+					};
+					D52906E62FE67D9F0005F066 = {
+						CreatedOnToolsVersion = 16.2;
+						TestTargetID = D52906CC2FE67D9D0005F066;
+					};
+				};
+			};
+			buildConfigurationList = D52906C82FE67D9D0005F066 /* Build configuration list for PBXProject "FrictionGate" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = D52906C42FE67D9D0005F066;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = D52906CE2FE67D9D0005F066 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				D52906CC2FE67D9D0005F066 /* FrictionGate */,
+				D52906DC2FE67D9F0005F066 /* FrictionGateTests */,
+				D52906E62FE67D9F0005F066 /* FrictionGateUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		D52906CB2FE67D9D0005F066 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D52906DB2FE67D9F0005F066 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D52906E52FE67D9F0005F066 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		D52906C92FE67D9D0005F066 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D52906D92FE67D9F0005F066 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D52906E32FE67D9F0005F066 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		D52906DF2FE67D9F0005F066 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D52906CC2FE67D9D0005F066 /* FrictionGate */;
+			targetProxy = D52906DE2FE67D9F0005F066 /* PBXContainerItemProxy */;
+		};
+		D52906E92FE67D9F0005F066 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D52906CC2FE67D9D0005F066 /* FrictionGate */;
+			targetProxy = D52906E82FE67D9F0005F066 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		D52906EF2FE67D9F0005F066 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		D52906F02FE67D9F0005F066 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		D52906F22FE67D9F0005F066 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"FrictionGate/Preview Content\"";
+				DEVELOPMENT_TEAM = 5LV8BN8Q4Q;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.debrajpal.FrictionGate;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		D52906F32FE67D9F0005F066 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"FrictionGate/Preview Content\"";
+				DEVELOPMENT_TEAM = 5LV8BN8Q4Q;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.debrajpal.FrictionGate;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		D52906F52FE67D9F0005F066 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 5LV8BN8Q4Q;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.debrajpal.FrictionGateTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/FrictionGate.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/FrictionGate";
+			};
+			name = Debug;
+		};
+		D52906F62FE67D9F0005F066 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 5LV8BN8Q4Q;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.debrajpal.FrictionGateTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/FrictionGate.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/FrictionGate";
+			};
+			name = Release;
+		};
+		D52906F82FE67D9F0005F066 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 5LV8BN8Q4Q;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.debrajpal.FrictionGateUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = FrictionGate;
+			};
+			name = Debug;
+		};
+		D52906F92FE67D9F0005F066 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 5LV8BN8Q4Q;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.debrajpal.FrictionGateUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = FrictionGate;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		D52906C82FE67D9D0005F066 /* Build configuration list for PBXProject "FrictionGate" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D52906EF2FE67D9F0005F066 /* Debug */,
+				D52906F02FE67D9F0005F066 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D52906F12FE67D9F0005F066 /* Build configuration list for PBXNativeTarget "FrictionGate" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D52906F22FE67D9F0005F066 /* Debug */,
+				D52906F32FE67D9F0005F066 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D52906F42FE67D9F0005F066 /* Build configuration list for PBXNativeTarget "FrictionGateTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D52906F52FE67D9F0005F066 /* Debug */,
+				D52906F62FE67D9F0005F066 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D52906F72FE67D9F0005F066 /* Build configuration list for PBXNativeTarget "FrictionGateUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D52906F82FE67D9F0005F066 /* Debug */,
+				D52906F92FE67D9F0005F066 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = D52906C52FE67D9D0005F066 /* Project object */;
+}
