@@ -43,6 +43,7 @@ final class WakeUpViewModel: ObservableObject {
     var detectionEnabled: Bool {
         get { ruleStore.appSettings.wakeUpDetectionEnabled }
         set {
+            objectWillChange.send()
             ruleStore.appSettings.wakeUpDetectionEnabled = newValue
             ruleStore.saveSettings()
         }
@@ -51,6 +52,7 @@ final class WakeUpViewModel: ObservableObject {
     var idleHours: Int {
         get { ruleStore.appSettings.wakeUpIdleHours }
         set {
+            objectWillChange.send()
             ruleStore.appSettings.wakeUpIdleHours = newValue
             ruleStore.saveSettings()
         }
@@ -59,6 +61,7 @@ final class WakeUpViewModel: ObservableObject {
     var windowStart: DateComponents {
         get { ruleStore.appSettings.wakeUpWindowStart }
         set {
+            objectWillChange.send()
             ruleStore.appSettings.wakeUpWindowStart = newValue
             ruleStore.saveSettings()
         }
@@ -67,6 +70,7 @@ final class WakeUpViewModel: ObservableObject {
     var windowEnd: DateComponents {
         get { ruleStore.appSettings.wakeUpWindowEnd }
         set {
+            objectWillChange.send()
             ruleStore.appSettings.wakeUpWindowEnd = newValue
             ruleStore.saveSettings()
         }
@@ -75,6 +79,7 @@ final class WakeUpViewModel: ObservableObject {
     var sleepTime: DateComponents? {
         get { ruleStore.appSettings.sleepTime }
         set {
+            objectWillChange.send()
             ruleStore.appSettings.sleepTime = newValue
             ruleStore.saveSettings()
         }

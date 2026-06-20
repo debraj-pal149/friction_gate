@@ -155,15 +155,11 @@
 		};
 		D52906E02FE67D9F0005F066 /* FrictionGateTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = FrictionGateTests;
 			sourceTree = "<group>";
 		};
 		D52906EA2FE67D9F0005F066 /* FrictionGateUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = FrictionGateUITests;
 			sourceTree = "<group>";
 		};
@@ -272,7 +268,6 @@
 				1314661D56A46D9479232C12 /* UnlockViewModel.swift */,
 				2F7328097084FF82C17EF303 /* WakeUpViewModel.swift */,
 			);
-			name = ViewModels;
 			path = ViewModels;
 			sourceTree = "<group>";
 		};
