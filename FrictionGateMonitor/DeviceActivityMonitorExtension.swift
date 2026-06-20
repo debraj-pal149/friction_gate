@@ -55,12 +55,15 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         else { return }
 
         // Day-of-week guard: DeviceActivityCenter fires every day regardless of DaySet.
-        // We check the DaySet here and skip the day if the condition doesn't include it.
         if conditionIndex < rule.conditions.count,
            case .timeWindow(_, _, let days) = rule.conditions[conditionIndex],
            !days.contains(todayAsDaySet()) {
             return
         }
+
+        // Session guard: if the user just completed an unlock challenge and their
+        // session hasn't expired yet, don't re-block immediately.
+        if isSessionActive(for: ruleIDString) { return }
 
         applyShield(for: &rule)
     }
@@ -171,6 +174,18 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
 
         guard let index = Int(indexPart) else { return nil }
         return (uuidPart, index)
+    }
+
+    // MARK: - Session helper
+
+    /// Returns `true` if an active (non-expired) unlock session exists for the
+    /// given rule ID string.  The session key is written by `UnlockViewModel`
+    /// and cleared by `FrictionGateApp` once it expires.
+    private func isSessionActive(for ruleIDString: String) -> Bool {
+        let key = "session_expires_\(ruleIDString)"
+        let expiryTS = defaults.double(forKey: key)
+        guard expiryTS > 0 else { return false }
+        return Date().timeIntervalSince1970 < expiryTS
     }
 
     // MARK: - Day-of-week helper

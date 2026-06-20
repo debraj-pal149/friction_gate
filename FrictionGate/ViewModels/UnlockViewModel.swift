@@ -309,8 +309,15 @@ final class UnlockViewModel: ObservableObject {
     // MARK: - Completion
 
     private func completeAllChallenges() {
-        // Remove the ManagedSettings shield.
+        // Remove the ManagedSettings shield so the app can open immediately.
         blockingService.removeShield(for: rule)
+
+        // Grant the user a session — write expiry to App Group UserDefaults so
+        // both the main app and the DeviceActivity extension can respect it.
+        let sessionExpiry = Date().addingTimeInterval(Double(rule.sessionDurationMinutes) * 60)
+        UserDefaults(suiteName: "group.com.debrajpal.frictiongate")?
+            .set(sessionExpiry.timeIntervalSince1970,
+                 forKey: "session_expires_\(rule.id.uuidString)")
 
         // Update the rule's unlock bookkeeping.
         var updatedRule = rule

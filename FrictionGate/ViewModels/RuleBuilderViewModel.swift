@@ -9,7 +9,8 @@ enum BuilderStep: Int, CaseIterable {
     case appPicker      = 0   // Screen 1 — pick the app
     case conditionPicker      // Screen 2 — choose when to block
     case challengePicker      // Screen 3 — choose unlock challenges
-    case review               // Screen 4 — confirm and save
+    case escalation           // Screen 4 — escalation & session settings
+    case review               // Screen 5 — confirm and save
 }
 
 // MARK: - RuleBuilderViewModel
@@ -29,12 +30,12 @@ final class RuleBuilderViewModel: ObservableObject {
     // MARK: - App selection
     //
     // `activitySelection` is bound directly to `FamilyActivityPicker` in the View.
-    // `appDisplayName` is populated by the View after the user picks an app
-    // (read from `activitySelection.applications.first?.localizedDisplayName` or
-    // typed manually if the display name is unavailable).
+    // `appDisplayName` is auto-populated from the picker selection.
+    // `appBundleID` is populated from `Application.bundleIdentifier` if available.
 
     @Published var activitySelection: FamilyActivitySelection = FamilyActivitySelection()
     @Published var appDisplayName: String = ""
+    @Published var appBundleID: String? = nil
 
     // MARK: - Block conditions
 
@@ -44,10 +45,11 @@ final class RuleBuilderViewModel: ObservableObject {
 
     @Published var challenges: [UnlockChallenge] = []
 
-    // MARK: - Escalation
+    // MARK: - Escalation & session
 
     @Published var escalationEnabled: Bool = false
     @Published var escalationWindowMinutes: Int = 120
+    @Published var sessionDurationMinutes: Int = 20
 
     // MARK: - Init
 
@@ -62,7 +64,8 @@ final class RuleBuilderViewModel: ObservableObject {
     // MARK: - Validation
 
     var isAppSelected: Bool {
-        !activitySelection.applicationTokens.isEmpty || !appDisplayName.isEmpty
+        !activitySelection.applicationTokens.isEmpty &&
+        !appDisplayName.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
     var hasConditions:  Bool { !conditions.isEmpty }
@@ -76,6 +79,7 @@ final class RuleBuilderViewModel: ObservableObject {
         case .appPicker:       return isAppSelected
         case .conditionPicker: return hasConditions
         case .challengePicker: return hasChallenges
+        case .escalation:      return true   // always optional — user can skip
         case .review:          return isValid
         }
     }
@@ -138,6 +142,7 @@ final class RuleBuilderViewModel: ObservableObject {
         var lines = [
             "\(app) will be blocked during \(conds).",
             "To unlock: \(challs).",
+            "After unlocking, you have \(sessionDurationMinutes) minute\(sessionDurationMinutes == 1 ? "" : "s") before it re-locks.",
         ]
         if escalationEnabled {
             lines.append(
@@ -157,10 +162,12 @@ final class RuleBuilderViewModel: ObservableObject {
 
         var rule = Rule(
             appDisplayName: appDisplayName,
+            appBundleID: appBundleID,
             conditions: conditions,
             challenges: challenges,
             escalationEnabled: escalationEnabled,
-            escalationWindowMinutes: escalationWindowMinutes
+            escalationWindowMinutes: escalationWindowMinutes,
+            sessionDurationMinutes: sessionDurationMinutes
         )
         // Attach the selection so RuleStore can archive ApplicationToken correctly.
         rule.activitySelection = activitySelection
@@ -179,12 +186,14 @@ final class RuleBuilderViewModel: ObservableObject {
 
     /// Clears all builder state, typically called after save or on sheet dismiss.
     func reset() {
-        activitySelection        = FamilyActivitySelection()
-        appDisplayName           = ""
-        conditions               = []
-        challenges               = []
-        escalationEnabled        = false
-        escalationWindowMinutes  = 120
-        currentStep              = .appPicker
+        activitySelection       = FamilyActivitySelection()
+        appDisplayName          = ""
+        appBundleID             = nil
+        conditions              = []
+        challenges              = []
+        escalationEnabled       = false
+        escalationWindowMinutes = 120
+        sessionDurationMinutes  = 20
+        currentStep             = .appPicker
     }
 }

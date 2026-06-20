@@ -66,7 +66,7 @@ struct GlobalSettingsView: View {
         } header: {
             Label("Wake-Up Detection", systemImage: "sunrise")
         } footer: {
-            Text("FrictionGate detects wake-up when the phone has been idle for the threshold hours and you open the app within the detection window.")
+            Text("Friction detects wake-up when the phone has been idle for the threshold hours and you open the app within the detection window.")
         }
     }
 

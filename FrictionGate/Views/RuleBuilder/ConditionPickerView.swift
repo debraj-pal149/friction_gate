@@ -44,7 +44,7 @@ struct ConditionPickerView: View {
                            displayedComponents: .hourAndMinute)
                 DatePicker("End",   selection: $twEnd.didSet { _ in sync() },
                            displayedComponents: .hourAndMinute)
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 10) {
                     Text("Days").foregroundColor(.secondary)
                     DaySetPicker(selection: $twDays.didSet { _ in sync() })
                 }
@@ -151,29 +151,66 @@ struct ConditionPickerView: View {
 
 // MARK: - Day picker
 
+/// A full day-selection control with preset chips (Every day / Weekdays / Weekends)
+/// above individual day toggles.  Any combination of days is supported.
 private struct DaySetPicker: View {
     @Binding var selection: DaySet
 
-    private let days: [(String, DaySet)] = [
+    private let days: [(label: String, day: DaySet)] = [
         ("M", .monday), ("T", .tuesday), ("W", .wednesday),
         ("Th", .thursday), ("F", .friday), ("Sa", .saturday), ("Su", .sunday)
     ]
 
+    private let presets: [(label: String, value: DaySet)] = [
+        ("Every day", .everyday),
+        ("Weekdays",  .weekdays),
+        ("Weekends",  [.saturday, .sunday]),
+    ]
+
     var body: some View {
-        HStack(spacing: 4) {
-            ForEach(days, id: \.1.rawValue) { label, day in
-                Button(label) {
-                    if selection.contains(day) { selection.remove(day) }
-                    else { selection.insert(day) }
+        VStack(alignment: .leading, spacing: 10) {
+            // Quick-select preset chips
+            HStack(spacing: 8) {
+                ForEach(presets, id: \.label) { preset in
+                    Button(preset.label) {
+                        selection = preset.value
+                    }
+                    .buttonStyle(.plain)
+                    .font(.caption.bold())
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(
+                        selection == preset.value
+                            ? Color.blue
+                            : Color(.tertiarySystemFill)
+                    )
+                    .foregroundColor(selection == preset.value ? .white : .primary)
+                    .clipShape(Capsule())
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 7)
-                .background(selection.contains(day) ? Color.blue : Color(.tertiarySystemFill))
-                .foregroundColor(selection.contains(day) ? .white : .primary)
-                .clipShape(RoundedRectangle(cornerRadius: 7))
-                .font(.caption.bold())
+            }
+
+            // Individual day buttons
+            HStack(spacing: 4) {
+                ForEach(days, id: \.day.rawValue) { item in
+                    Button(item.label) {
+                        if selection.contains(item.day) {
+                            selection.remove(item.day)
+                        } else {
+                            selection.insert(item.day)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 7)
+                    .background(selection.contains(item.day) ? Color.blue : Color(.tertiarySystemFill))
+                    .foregroundColor(selection.contains(item.day) ? .white : .primary)
+                    .clipShape(RoundedRectangle(cornerRadius: 7))
+                    .font(.caption.bold())
+                }
             }
         }
+        // Prevent the List row from capturing taps meant for our buttons.
+        .contentShape(Rectangle())
     }
 }
 

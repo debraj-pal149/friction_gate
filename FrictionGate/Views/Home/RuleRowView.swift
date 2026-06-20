@@ -4,12 +4,13 @@ struct RuleRowView: View {
 
     let rule: Rule
     let onToggleActive: () -> Void
-    let onPause: () -> Void
-    let onUnlock: () -> Void
+    let onOptions: () -> Void
 
     var body: some View {
         HStack(spacing: 14) {
-            appIcon
+            AppIconView(appName: rule.appDisplayName, bundleID: rule.appBundleID, size: 46)
+                .opacity(rule.isActive ? 1 : 0.45)
+
             info
             Spacer(minLength: 8)
             controls
@@ -17,18 +18,7 @@ struct RuleRowView: View {
         .padding(.vertical, 4)
     }
 
-    // MARK: - Subviews
-
-    private var appIcon: some View {
-        RoundedRectangle(cornerRadius: 12)
-            .fill(iconColor.gradient)
-            .frame(width: 46, height: 46)
-            .overlay(
-                Image(systemName: "app.fill")
-                    .font(.title3)
-                    .foregroundColor(.white)
-            )
-    }
+    // MARK: - Info column
 
     private var info: some View {
         VStack(alignment: .leading, spacing: 3) {
@@ -42,13 +32,9 @@ struct RuleRowView: View {
                     .lineLimit(1)
             }
 
-            // Status badges
             HStack(spacing: 6) {
-                if rule.isPaused && !rule.pauseHasExpired {
-                    badge("Paused", color: .orange)
-                }
                 if !rule.isActive {
-                    badge("Off", color: .secondary)
+                    badge("Paused", color: .orange)
                 }
                 if !rule.challenges.isEmpty {
                     badge(rule.challenges[0].displayName, color: .blue)
@@ -57,25 +43,28 @@ struct RuleRowView: View {
         }
     }
 
+    // MARK: - Controls column
+
     private var controls: some View {
-        VStack(alignment: .trailing, spacing: 10) {
+        VStack(alignment: .trailing, spacing: 12) {
+            // Toggle = pause / unpause
             Toggle("", isOn: Binding(
                 get: { rule.isActive },
                 set: { _ in onToggleActive() }
             ))
             .labelsHidden()
 
-            if rule.isActive {
-                Button { onPause() } label: {
-                    Image(systemName: rule.isPaused ? "play.circle" : "pause.circle")
-                        .foregroundColor(.orange)
-                }
-                .buttonStyle(.plain)
+            // Options icon → delete flow
+            Button { onOptions() } label: {
+                Image(systemName: "ellipsis.circle")
+                    .foregroundColor(.secondary)
+                    .font(.title3)
             }
+            .buttonStyle(.plain)
         }
     }
 
-    // MARK: - Helpers
+    // MARK: - Badge helper
 
     private func badge(_ text: String, color: Color) -> some View {
         Text(text)
@@ -85,11 +74,5 @@ struct RuleRowView: View {
             .padding(.vertical, 2)
             .background(color.opacity(0.12))
             .clipShape(Capsule())
-    }
-
-    private var iconColor: Color {
-        if !rule.isActive    { return .secondary }
-        if rule.isPaused && !rule.pauseHasExpired { return .orange }
-        return .blue
     }
 }

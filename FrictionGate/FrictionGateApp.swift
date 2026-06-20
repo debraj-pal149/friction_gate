@@ -17,6 +17,25 @@ import FamilyControls
 @MainActor
 final class AppState: ObservableObject {
     @Published var pendingUnlockRule: Rule? = nil
+
+    /// Current Family Controls authorization status.
+    /// Updated on every app foreground so UI can react without a restart.
+    @Published var familyControlsStatus: AuthorizationStatus = .notDetermined
+
+    /// Human-readable description of the last `requestAuthorization` error,
+    /// if any.  Nil when authorization succeeded or has not been attempted.
+    @Published var familyControlsError: String? = nil
+
+    /// Whether the pre-permission primer has been shown to the user.
+    /// Persisted so the primer is never shown more than once.
+    @Published var hasShownPermissionPrimer: Bool = {
+        UserDefaults.standard.bool(forKey: "friction_permission_primer_shown")
+    }()
+
+    func markPrimerShown() {
+        hasShownPermissionPrimer = true
+        UserDefaults.standard.set(true, forKey: "friction_permission_primer_shown")
+    }
 }
 
 // MARK: - FrictionGateApp
@@ -37,7 +56,6 @@ struct FrictionGateApp: App {
     // MARK: - Init
 
     init() {
-        // Create concrete instances first so every object shares the SAME store.
         let store    = RuleStore()
         let detector = WakeUpDetector()
         let state    = AppState()
@@ -61,22 +79,23 @@ struct FrictionGateApp: App {
                 .environmentObject(ruleStore)
                 .environmentObject(homeVM)
                 .environmentObject(wakeUpVM)
-                // Request FamilyControls + HealthKit on first foreground.
-                .task { await requestAuthorizations() }
-                // Handle frictiongate://unlock?ruleID=… deep links.
+                // HealthKit auth runs once on first render.
+                // FamilyControls auth is handled by PermissionPrimerView on first launch;
+                // subsequent launches just read the current status.
+                .task { await requestHealthKitAuthorization() }
                 .onOpenURL { handleURL($0) }
         }
-        // Wake-up detection + extension handoff on every foreground.
         .onChange(of: scenePhase) { phase in
             guard phase == .active else { return }
             wakeUpVM.appDidBecomeActive()
             checkPendingUnlockFromExtension()
+            refreshFamilyControlsStatus()
+            reapplyShieldsForExpiredSessions()
         }
     }
 
     // MARK: - URL deep link
 
-    /// Parses `frictiongate://unlock?ruleID=<UUID>` and sets the pending unlock rule.
     private func handleURL(_ url: URL) {
         guard
             url.scheme == "frictiongate",
@@ -92,11 +111,6 @@ struct FrictionGateApp: App {
 
     // MARK: - Shield extension handoff
 
-    /// Checks whether the `ShieldActionExtension` wrote a `pending_unlock_rule_id`
-    /// into the shared App Group `UserDefaults` while the main app was suspended.
-    ///
-    /// This is the primary mechanism for surfacing the unlock screen — the extension
-    /// cannot open URLs directly, so it signals through shared storage instead.
     private func checkPendingUnlockFromExtension() {
         guard appState.pendingUnlockRule == nil else { return }
 
@@ -108,27 +122,59 @@ struct FrictionGateApp: App {
         else { return }
 
         appState.pendingUnlockRule = rule
-        // The key is cleared by UnlockViewModel.completeAllChallenges() after success,
-        // or left in place so the unlock screen re-appears if the user cancels.
+    }
+
+    // MARK: - Session expiry re-evaluation
+
+    /// For each active rule, checks whether the user's unlock session has expired.
+    /// If it has, re-applies the shield so the next open of the blocked app shows
+    /// the unlock challenge again.
+    ///
+    /// Called every time the app foregrounds — this is the primary mechanism for
+    /// Option C (configurable session duration) re-blocking.
+    private func reapplyShieldsForExpiredSessions() {
+        guard let defaults = UserDefaults(suiteName: "group.com.debrajpal.frictiongate")
+        else { return }
+
+        let now = Date()
+
+        for rule in ruleStore.rules where rule.isEnforcing {
+            let key = "session_expires_\(rule.id.uuidString)"
+            let expiryTS = defaults.double(forKey: key)
+
+            // No session key → no active session → evaluate normally.
+            // Session expired → clear the key and re-apply shield if condition active.
+            if expiryTS > 0 {
+                if now.timeIntervalSince1970 > expiryTS {
+                    defaults.removeObject(forKey: key)
+                    BlockingService.shared.evaluateAndApplyShield(
+                        for: rule, wakeUpDetector: wakeUpDetector
+                    )
+                }
+                // If session is still active, do nothing — user still has access.
+            } else {
+                // No active session — ensure shield is in sync with condition.
+                BlockingService.shared.evaluateAndApplyShield(
+                    for: rule, wakeUpDetector: wakeUpDetector
+                )
+            }
+        }
     }
 
     // MARK: - Authorizations
 
-    /// Requests FamilyControls and HealthKit permissions.
+    /// Requests HealthKit permission.
     ///
-    /// Both frameworks show their system dialogs only on the first call; subsequent
-    /// calls are silent no-ops.  The `.task` modifier ensures this runs once on the
-    /// first render of ContentView.
-    private func requestAuthorizations() async {
-        // FamilyControls — required before FamilyActivityPicker or ManagedSettings work.
-        do {
-            try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
-        } catch {
-            // If denied or not yet approved via developer.apple.com, the app still
-            // launches; rules just won't block anything until approval is granted.
-        }
-
-        // HealthKit — required for step-count unlock challenges.
+    /// FamilyControls authorization is handled by `PermissionPrimerView` on first
+    /// launch so the user sees a clear explanation before the system dialog appears.
+    /// After the primer runs once, `refreshFamilyControlsStatus()` keeps the status
+    /// current on every foreground.
+    private func requestHealthKitAuthorization() async {
         try? await HealthKitService.shared.requestAuthorization()
+    }
+
+    /// Syncs `appState.familyControlsStatus` with the live system value.
+    private func refreshFamilyControlsStatus() {
+        appState.familyControlsStatus = AuthorizationCenter.shared.authorizationStatus
     }
 }

@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Root container for the 4-step rule creation flow.
+/// Root container for the 5-step rule creation flow.
 /// Presented as a full-screen sheet from `HomeView`.
 struct RuleBuilderView: View {
 
@@ -26,6 +26,8 @@ struct RuleBuilderView: View {
                         ConditionPickerView(vm: vm)
                     case .challengePicker:
                         ChallengePickerView(vm: vm)
+                    case .escalation:
+                        EscalationPickerView(vm: vm)
                     case .review:
                         RuleReviewView(vm: vm, onSave: {
                             vm.save()
@@ -65,14 +67,14 @@ struct RuleBuilderView: View {
         HStack(spacing: 0) {
             ForEach(BuilderStep.allCases, id: \.rawValue) { step in
                 stepDot(step)
-                if step != .review {          // show connector between all dots except after the last
+                if step != .review {
                     Rectangle()
                         .fill(step.rawValue < vm.currentStep.rawValue ? Color.blue : Color(.systemFill))
                         .frame(height: 2)
                 }
             }
         }
-        .padding(.horizontal, 24)
+        .padding(.horizontal, 20)
         .padding(.vertical, 12)
     }
 
@@ -83,14 +85,14 @@ struct RuleBuilderView: View {
         return ZStack {
             Circle()
                 .fill(isCompleted ? Color.blue : (isActive ? Color.blue : Color(.systemFill)))
-                .frame(width: 28, height: 28)
+                .frame(width: 26, height: 26)
             if isCompleted {
                 Image(systemName: "checkmark")
-                    .font(.caption.bold())
+                    .font(.caption2.bold())
                     .foregroundColor(.white)
             } else {
                 Text("\(step.rawValue + 1)")
-                    .font(.caption.bold())
+                    .font(.caption2.bold())
                     .foregroundColor(isActive ? .white : .secondary)
             }
         }
@@ -101,6 +103,7 @@ struct RuleBuilderView: View {
         case .appPicker:       return "Choose App"
         case .conditionPicker: return "When to Block"
         case .challengePicker: return "Unlock Challenge"
+        case .escalation:      return "Session & Escalation"
         case .review:          return "Review Rule"
         }
     }

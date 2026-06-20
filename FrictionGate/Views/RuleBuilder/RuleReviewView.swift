@@ -7,6 +7,10 @@ struct RuleReviewView: View {
 
     var body: some View {
         List {
+            // App identity header
+            appHeaderSection
+
+            // Summary sentence
             Section {
                 Text(vm.reviewSummary)
                     .font(.body)
@@ -38,6 +42,27 @@ struct RuleReviewView: View {
                 }
             }
 
+            // Session & escalation summary
+            Section("Session & Escalation") {
+                Label(
+                    "\(vm.sessionDurationMinutes) min session after each unlock",
+                    systemImage: "hourglass"
+                )
+                .font(.subheadline)
+
+                if vm.escalationEnabled {
+                    Label(
+                        "Escalation on — window: \(vm.escalationWindowMinutes) min",
+                        systemImage: "arrow.up.right.circle"
+                    )
+                    .font(.subheadline)
+                } else {
+                    Label("Escalation off", systemImage: "arrow.up.right.circle")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+            }
+
             Section {
                 Button {
                     onSave()
@@ -55,6 +80,25 @@ struct RuleReviewView: View {
             }
         }
         .listStyle(.insetGrouped)
+    }
+
+    // MARK: - App header
+
+    private var appHeaderSection: some View {
+        Section {
+            HStack(spacing: 16) {
+                AppIconView(appName: vm.appDisplayName, bundleID: vm.appBundleID, size: 64)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(vm.appDisplayName.isEmpty ? "Selected App" : vm.appDisplayName)
+                        .font(.title3.bold())
+                    Text("Rule applies to this app")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .padding(.vertical, 6)
+        }
     }
 
     // MARK: - Icon helpers

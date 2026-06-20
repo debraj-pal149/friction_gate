@@ -30,7 +30,6 @@ struct ChallengePickerView: View {
             typeSentenceSection
             waitSection
             writeReasonSection
-            escalationSection
         }
         .listStyle(.insetGrouped)
         .onAppear { loadFromVM() }
@@ -104,21 +103,6 @@ struct ChallengePickerView: View {
             Label("Write a Reason", systemImage: "pencil.and.list.clipboard")
         } footer: {
             Text("Ask the user to write a short reason for why they want to unlock. No verification — just adds friction and self-reflection.")
-        }
-    }
-
-    private var escalationSection: some View {
-        Section {
-            Toggle("Enable escalation", isOn: $vm.escalationEnabled)
-            if vm.escalationEnabled {
-                Stepper("Window: \(vm.escalationWindowMinutes) min",
-                        value: $vm.escalationWindowMinutes,
-                        in: 15...480, step: 15)
-            }
-        } header: {
-            Label("Escalation", systemImage: "arrow.up.right.circle")
-        } footer: {
-            Text("Each time you unlock within the window, the challenges get harder (up to 5×). Resets after the window expires.")
         }
     }
 

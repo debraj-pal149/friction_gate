@@ -3,6 +3,7 @@ import SwiftUI
 /// Root view of the application.
 ///
 /// Responsibilities:
+/// - Shows `PermissionPrimerView` on first launch (before Family Controls dialog).
 /// - Renders `HomeView` backed by the shared `HomeViewModel` from the environment.
 /// - Presents `UnlockView` as a `.fullScreenCover` when `AppState.pendingUnlockRule`
 ///   is set — either from the `frictiongate://unlock` URL scheme or from the
@@ -15,12 +16,26 @@ struct ContentView: View {
 
     var body: some View {
         HomeView(vm: homeVM, ruleStore: ruleStore)
-            // Shield-unlock cover: presented when the extension or a deep link
-            // triggers an unlock request.  Cleared when the cover is dismissed
-            // or when UnlockViewModel.completeAllChallenges() succeeds.
             .fullScreenCover(item: $appState.pendingUnlockRule) { rule in
                 UnlockView(rule: rule, ruleStore: ruleStore)
             }
+            // Show the permission primer exactly once, before the system dialog.
+            .fullScreenCover(isPresented: shouldShowPrimer) {
+                PermissionPrimerView()
+            }
+    }
+
+    /// Show the primer when it hasn't been shown yet AND permission hasn't been
+    /// granted yet.  If the user already approved (e.g. on a reinstall where
+    /// UserDefaults was cleared but the system already granted), skip the primer.
+    private var shouldShowPrimer: Binding<Bool> {
+        Binding(
+            get: {
+                !appState.hasShownPermissionPrimer &&
+                appState.familyControlsStatus != .approved
+            },
+            set: { _ in }   // dismiss is handled by PermissionPrimerView itself
+        )
     }
 }
 

@@ -2,19 +2,18 @@ import SwiftUI
 
 // MARK: - Sheet routing
 
-/// All sheets that `HomeView` can present.
 private enum HomeSheet: Identifiable {
     case builder
     case unlock(Rule)
     case settings
-    case pause(Rule)            // pause sheet driven by HomeViewModel
+    case options(Rule)
 
     var id: String {
         switch self {
         case .builder:            return "builder"
         case .unlock(let rule):   return "unlock-\(rule.id)"
         case .settings:           return "settings"
-        case .pause(let rule):    return "pause-\(rule.id)"
+        case .options(let rule):  return "options-\(rule.id)"
         }
     }
 }
@@ -26,7 +25,6 @@ struct HomeView: View {
     @ObservedObject var vm: HomeViewModel
     let ruleStore: RuleStore
 
-    /// Shared WakeUpViewModel injected by FrictionGateApp — used for GlobalSettingsView.
     @EnvironmentObject private var wakeUpVM: WakeUpViewModel
 
     @State private var activeSheet: HomeSheet? = nil
@@ -40,7 +38,7 @@ struct HomeView: View {
                     ruleList
                 }
             }
-            .navigationTitle("FrictionGate")
+            .navigationTitle("Friction")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { activeSheet = .builder } label: {
@@ -54,21 +52,11 @@ struct HomeView: View {
                     }
                 }
             }
-            // Single consolidated sheet — safe on iOS 16.0+
             .sheet(item: $activeSheet) { sheet in
                 sheetContent(for: sheet)
             }
         }
         .onAppear { vm.refreshRules() }
-        // Mirror HomeViewModel's pause request into our sheet state.
-        // Observe the ID (UUID?) rather than Rule? — UUID is Equatable, Rule is not.
-        .onChange(of: vm.pendingPauseRule?.id) { ruleID in
-            if ruleID != nil, let rule = vm.pendingPauseRule {
-                activeSheet = .pause(rule)
-            } else {
-                if case .pause = activeSheet { activeSheet = nil }
-            }
-        }
     }
 
     // MARK: - Sheet content
@@ -85,22 +73,9 @@ struct HomeView: View {
         case .settings:
             GlobalSettingsView(vm: wakeUpVM)
 
-        case .pause(let rule):
-            PauseRuleView(
-                rule: rule,
-                confirmationText: vm.pauseConfirmationText,
-                onConfirm: { duration in
-                    vm.confirmPause(for: rule, duration: duration)
-                    activeSheet = nil
-                },
-                onCancel: {
-                    vm.cancelPause()
-                    activeSheet = nil
-                }
-            )
-            .onDisappear {
-                // Fired on swipe-to-dismiss as well — ensures ViewModel is cleaned up.
-                vm.cancelPause()
+        case .options(let rule):
+            RuleOptionsView(rule: rule) {
+                vm.deleteRule(rule)
             }
         }
     }
@@ -113,27 +88,8 @@ struct HomeView: View {
                 RuleRowView(
                     rule: rule,
                     onToggleActive: { vm.toggleActive(rule) },
-                    onPause: {
-                        vm.startPause(for: rule)
-                        // activeSheet will be set by the onChange above
-                    },
-                    onUnlock: { activeSheet = .unlock(rule) }
+                    onOptions: { activeSheet = .options(rule) }
                 )
-                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    Button(role: .destructive) {
-                        vm.deleteRule(rule)
-                    } label: {
-                        Label("Delete", systemImage: "trash")
-                    }
-                }
-                .swipeActions(edge: .leading) {
-                    Button {
-                        vm.startPause(for: rule)
-                    } label: {
-                        Label("Pause", systemImage: "pause.circle")
-                    }
-                    .tint(.orange)
-                }
             }
         }
         .listStyle(.insetGrouped)

@@ -9,6 +9,7 @@ struct PasteBlockingTextField: UIViewRepresentable {
     @Binding var text: String
     var keyboardType: UIKeyboardType = .default
     var font: UIFont = .systemFont(ofSize: 16)
+    var autocapitalizationType: UITextAutocapitalizationType = .sentences
     var onCommit: (() -> Void)? = nil
 
     func makeUIView(context: Context) -> NoPasteUITextField {
@@ -17,9 +18,9 @@ struct PasteBlockingTextField: UIViewRepresentable {
         field.placeholder     = placeholder
         field.font            = font
         field.keyboardType    = keyboardType
-        field.autocorrectionType   = .no
-        field.autocapitalizationType = .sentences
-        field.spellCheckingType    = .no
+        field.autocorrectionType     = .no
+        field.autocapitalizationType = autocapitalizationType
+        field.spellCheckingType      = .no
         field.returnKeyType   = .done
         field.borderStyle     = .none
         field.backgroundColor = .clear

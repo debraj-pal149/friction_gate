@@ -51,6 +51,11 @@ struct Rule: Identifiable, Codable {
     /// challenge multiplier.  Default: 120 (2 hours).
     var escalationWindowMinutes: Int
 
+    /// After completing the unlock challenge the user gets this many minutes to
+    /// freely use the app before the shield is automatically re-applied.
+    /// Default: 20 minutes.
+    var sessionDurationMinutes: Int
+
     // MARK: - State
 
     var isActive: Bool
@@ -80,6 +85,7 @@ struct Rule: Identifiable, Codable {
         challenges: [UnlockChallenge] = [],
         escalationEnabled: Bool = false,
         escalationWindowMinutes: Int = 120,
+        sessionDurationMinutes: Int = 20,
         isActive: Bool = true,
         isPaused: Bool = false,
         pauseUntil: Date? = nil,
@@ -95,6 +101,7 @@ struct Rule: Identifiable, Codable {
         self.challenges = challenges
         self.escalationEnabled = escalationEnabled
         self.escalationWindowMinutes = escalationWindowMinutes
+        self.sessionDurationMinutes = sessionDurationMinutes
         self.isActive = isActive
         self.isPaused = isPaused
         self.pauseUntil = pauseUntil
@@ -115,12 +122,33 @@ struct Rule: Identifiable, Codable {
         case challenges
         case escalationEnabled
         case escalationWindowMinutes
+        case sessionDurationMinutes
         case isActive
         case isPaused
         case pauseUntil
         case createdAt
         case lastUnlockedAt
         case unlockCount
+    }
+
+    /// Custom decoder supplies defaults for fields added after v1, so existing
+    /// stored rules decode cleanly after an app update.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id                     = try c.decode(UUID.self,           forKey: .id)
+        appDisplayName         = try c.decode(String.self,         forKey: .appDisplayName)
+        appBundleID            = try c.decodeIfPresent(String.self, forKey: .appBundleID)
+        conditions             = try c.decode([BlockCondition].self, forKey: .conditions)
+        challenges             = try c.decode([UnlockChallenge].self, forKey: .challenges)
+        escalationEnabled      = try c.decodeIfPresent(Bool.self,  forKey: .escalationEnabled) ?? false
+        escalationWindowMinutes = try c.decodeIfPresent(Int.self,  forKey: .escalationWindowMinutes) ?? 120
+        sessionDurationMinutes = try c.decodeIfPresent(Int.self,   forKey: .sessionDurationMinutes) ?? 20
+        isActive               = try c.decodeIfPresent(Bool.self,  forKey: .isActive) ?? true
+        isPaused               = try c.decodeIfPresent(Bool.self,  forKey: .isPaused) ?? false
+        pauseUntil             = try c.decodeIfPresent(Date.self,  forKey: .pauseUntil)
+        createdAt              = try c.decodeIfPresent(Date.self,  forKey: .createdAt) ?? Date()
+        lastUnlockedAt         = try c.decodeIfPresent(Date.self,  forKey: .lastUnlockedAt)
+        unlockCount            = try c.decodeIfPresent(Int.self,   forKey: .unlockCount) ?? 0
     }
 
     // MARK: - State helpers
