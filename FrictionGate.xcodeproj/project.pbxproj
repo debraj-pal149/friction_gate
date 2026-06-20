@@ -7,11 +7,15 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0A5CB93F2B77C8BE66376BD5 /* WakeUpDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC06036320520C2F1B3C2B11 /* WakeUpDetector.swift */; };
 		2017D6D5EE4A66968643CCAB /* UnlockChallenge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67DFE17057430788224DCE77 /* UnlockChallenge.swift */; };
+		547BF0FD02294851C0F59A05 /* BlockingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A37B8D203F9DF236FF4DC1DD /* BlockingService.swift */; };
 		6394DAC141CBA6575C6BC715 /* RuleStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 814EC22E69E97E22FDA13197 /* RuleStore.swift */; };
+		87765DA089465D5CE3224CD0 /* StepMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78250BD3E71ECB47028B8C50 /* StepMonitor.swift */; };
 		942A22F130DEB2400049EFD2 /* Rule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 055B7AA6599AAD80AD3A1B43 /* Rule.swift */; };
 		990407DFF92815E46B91B371 /* UnlockAttempt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 554B84DB0C386E6D693C4CCF /* UnlockAttempt.swift */; };
 		9CBFB98C8018A8D72897F09E /* BlockCondition.swift in Sources */ = {isa = PBXBuildFile; fileRef = B47909E806163F76967B6C88 /* BlockCondition.swift */; };
+		AC143D9F03517CE4FA03C22D /* DeviceActivityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 542048C1849C931DF3B42F9F /* DeviceActivityService.swift */; };
 		D52907042FE6808D0005F066 /* DeviceActivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D52907032FE6808D0005F066 /* DeviceActivity.framework */; };
 		D529070C2FE6808D0005F066 /* FrictionGateMonitor.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = D52907012FE6808D0005F066 /* FrictionGateMonitor.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		D52907182FE680B40005F066 /* ManagedSettings.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D52907172FE680B40005F066 /* ManagedSettings.framework */; };
@@ -21,6 +25,9 @@
 		D52907602FE68BDB0005F066 /* ManagedSettings.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D52907172FE680B40005F066 /* ManagedSettings.framework */; };
 		D52907612FE68BDF0005F066 /* FamilyControls.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D529075D2FE68BB60005F066 /* FamilyControls.framework */; };
 		D52907622FE68BE60005F066 /* FamilyControls.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D529075D2FE68BB60005F066 /* FamilyControls.framework */; };
+		D52907A42FE690C60005F066 /* HealthKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D52907A32FE690C60005F066 /* HealthKit.framework */; };
+		D52907A52FE690CE0005F066 /* DeviceActivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D52907032FE6808D0005F066 /* DeviceActivity.framework */; };
+		E4E1400FC0E8CB38CA3264B0 /* HealthKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E69070F1FF772DE3985385D5 /* HealthKitService.swift */; };
 		F27BFDEBDF8185A06C051C79 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDC8F2AB5391766292C1935D /* AppSettings.swift */; };
 /* End PBXBuildFile section */
 
@@ -72,9 +79,12 @@
 
 /* Begin PBXFileReference section */
 		055B7AA6599AAD80AD3A1B43 /* Rule.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Rule.swift; sourceTree = "<group>"; };
+		542048C1849C931DF3B42F9F /* DeviceActivityService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DeviceActivityService.swift; sourceTree = "<group>"; };
 		554B84DB0C386E6D693C4CCF /* UnlockAttempt.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = UnlockAttempt.swift; sourceTree = "<group>"; };
 		67DFE17057430788224DCE77 /* UnlockChallenge.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = UnlockChallenge.swift; sourceTree = "<group>"; };
+		78250BD3E71ECB47028B8C50 /* StepMonitor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StepMonitor.swift; sourceTree = "<group>"; };
 		814EC22E69E97E22FDA13197 /* RuleStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RuleStore.swift; sourceTree = "<group>"; };
+		A37B8D203F9DF236FF4DC1DD /* BlockingService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BlockingService.swift; sourceTree = "<group>"; };
 		B47909E806163F76967B6C88 /* BlockCondition.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BlockCondition.swift; sourceTree = "<group>"; };
 		CDC8F2AB5391766292C1935D /* AppSettings.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		D52906CD2FE67D9D0005F066 /* FrictionGate.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FrictionGate.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -85,6 +95,9 @@
 		D52907162FE680B40005F066 /* FrictionGateShield.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = FrictionGateShield.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		D52907172FE680B40005F066 /* ManagedSettings.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ManagedSettings.framework; path = System/Library/Frameworks/ManagedSettings.framework; sourceTree = SDKROOT; };
 		D529075D2FE68BB60005F066 /* FamilyControls.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = FamilyControls.framework; path = System/Library/Frameworks/FamilyControls.framework; sourceTree = SDKROOT; };
+		D52907A32FE690C60005F066 /* HealthKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = HealthKit.framework; path = System/Library/Frameworks/HealthKit.framework; sourceTree = SDKROOT; };
+		E69070F1FF772DE3985385D5 /* HealthKitService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HealthKitService.swift; sourceTree = "<group>"; };
+		FC06036320520C2F1B3C2B11 /* WakeUpDetector.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WakeUpDetector.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -153,6 +166,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D52907A42FE690C60005F066 /* HealthKit.framework in Frameworks */,
+				D52907A52FE690CE0005F066 /* DeviceActivity.framework in Frameworks */,
 				D529075E2FE68BB60005F066 /* FamilyControls.framework in Frameworks */,
 				D529075F2FE68BC60005F066 /* ManagedSettings.framework in Frameworks */,
 			);
@@ -202,11 +217,24 @@
 			path = Persistence;
 			sourceTree = "<group>";
 		};
+		2AB191150654F0D53AD60723 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				E69070F1FF772DE3985385D5 /* HealthKitService.swift */,
+				A37B8D203F9DF236FF4DC1DD /* BlockingService.swift */,
+				542048C1849C931DF3B42F9F /* DeviceActivityService.swift */,
+				FC06036320520C2F1B3C2B11 /* WakeUpDetector.swift */,
+				78250BD3E71ECB47028B8C50 /* StepMonitor.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
 		3D2FDFA174ADFA3B90494677 /* FrictionGate */ = {
 			isa = PBXGroup;
 			children = (
 				E5D2F814188FBE87688C3388 /* Models */,
 				141DF672C4D2CB0101ACD616 /* Persistence */,
+				2AB191150654F0D53AD60723 /* Services */,
 			);
 			path = FrictionGate;
 			sourceTree = "<group>";
@@ -240,6 +268,7 @@
 		D52907022FE6808D0005F066 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				D52907A32FE690C60005F066 /* HealthKit.framework */,
 				D529075D2FE68BB60005F066 /* FamilyControls.framework */,
 				D52907032FE6808D0005F066 /* DeviceActivity.framework */,
 				D52907172FE680B40005F066 /* ManagedSettings.framework */,
@@ -468,6 +497,11 @@
 				F27BFDEBDF8185A06C051C79 /* AppSettings.swift in Sources */,
 				942A22F130DEB2400049EFD2 /* Rule.swift in Sources */,
 				6394DAC141CBA6575C6BC715 /* RuleStore.swift in Sources */,
+				E4E1400FC0E8CB38CA3264B0 /* HealthKitService.swift in Sources */,
+				547BF0FD02294851C0F59A05 /* BlockingService.swift in Sources */,
+				AC143D9F03517CE4FA03C22D /* DeviceActivityService.swift in Sources */,
+				0A5CB93F2B77C8BE66376BD5 /* WakeUpDetector.swift in Sources */,
+				87765DA089465D5CE3224CD0 /* StepMonitor.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

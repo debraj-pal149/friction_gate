@@ -2,6 +2,20 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSMotionUsageDescription</key>
+	<string>FrictionGate uses motion data as a fallback step counter.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string> FrictionGate does not write health data.</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>FrictionGate reads your step count to verify unlock challenges.</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleIdentifier</key>
+	<string></string>
+	<key>key</key>
+	<string></string>
+	<key>CFBundleExecutable</key>
+	<string></string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -15,6 +29,8 @@
 			</array>
 		</dict>
 	</array>
+	<key></key>
+	<string>6.0</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>fetch</string>
