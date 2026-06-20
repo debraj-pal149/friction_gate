@@ -11,11 +11,14 @@
 		2017D6D5EE4A66968643CCAB /* UnlockChallenge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67DFE17057430788224DCE77 /* UnlockChallenge.swift */; };
 		547BF0FD02294851C0F59A05 /* BlockingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A37B8D203F9DF236FF4DC1DD /* BlockingService.swift */; };
 		6394DAC141CBA6575C6BC715 /* RuleStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 814EC22E69E97E22FDA13197 /* RuleStore.swift */; };
+		67ED55F6C21FF9D1A6504BFF /* UnlockViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1314661D56A46D9479232C12 /* UnlockViewModel.swift */; };
 		87765DA089465D5CE3224CD0 /* StepMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78250BD3E71ECB47028B8C50 /* StepMonitor.swift */; };
 		942A22F130DEB2400049EFD2 /* Rule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 055B7AA6599AAD80AD3A1B43 /* Rule.swift */; };
 		990407DFF92815E46B91B371 /* UnlockAttempt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 554B84DB0C386E6D693C4CCF /* UnlockAttempt.swift */; };
 		9CBFB98C8018A8D72897F09E /* BlockCondition.swift in Sources */ = {isa = PBXBuildFile; fileRef = B47909E806163F76967B6C88 /* BlockCondition.swift */; };
 		AC143D9F03517CE4FA03C22D /* DeviceActivityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 542048C1849C931DF3B42F9F /* DeviceActivityService.swift */; };
+		BA902939C744D89EDE6DCA11 /* HomeViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45A8D5D18B8FD4BACBFE2F61 /* HomeViewModel.swift */; };
+		D0227F25B41C65B4F3D6046B /* RuleBuilderViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8172C938E85FD1EDFF699CFC /* RuleBuilderViewModel.swift */; };
 		D52907042FE6808D0005F066 /* DeviceActivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D52907032FE6808D0005F066 /* DeviceActivity.framework */; };
 		D529070C2FE6808D0005F066 /* FrictionGateMonitor.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = D52907012FE6808D0005F066 /* FrictionGateMonitor.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		D52907182FE680B40005F066 /* ManagedSettings.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D52907172FE680B40005F066 /* ManagedSettings.framework */; };
@@ -27,6 +30,7 @@
 		D52907622FE68BE60005F066 /* FamilyControls.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D529075D2FE68BB60005F066 /* FamilyControls.framework */; };
 		D52907A42FE690C60005F066 /* HealthKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D52907A32FE690C60005F066 /* HealthKit.framework */; };
 		D52907A52FE690CE0005F066 /* DeviceActivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D52907032FE6808D0005F066 /* DeviceActivity.framework */; };
+		D694D7C2509E890E069E2A56 /* WakeUpViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F7328097084FF82C17EF303 /* WakeUpViewModel.swift */; };
 		E4E1400FC0E8CB38CA3264B0 /* HealthKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E69070F1FF772DE3985385D5 /* HealthKitService.swift */; };
 		F27BFDEBDF8185A06C051C79 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDC8F2AB5391766292C1935D /* AppSettings.swift */; };
 /* End PBXBuildFile section */
@@ -79,11 +83,15 @@
 
 /* Begin PBXFileReference section */
 		055B7AA6599AAD80AD3A1B43 /* Rule.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Rule.swift; sourceTree = "<group>"; };
+		1314661D56A46D9479232C12 /* UnlockViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = UnlockViewModel.swift; sourceTree = "<group>"; };
+		2F7328097084FF82C17EF303 /* WakeUpViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WakeUpViewModel.swift; sourceTree = "<group>"; };
+		45A8D5D18B8FD4BACBFE2F61 /* HomeViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HomeViewModel.swift; sourceTree = "<group>"; };
 		542048C1849C931DF3B42F9F /* DeviceActivityService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DeviceActivityService.swift; sourceTree = "<group>"; };
 		554B84DB0C386E6D693C4CCF /* UnlockAttempt.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = UnlockAttempt.swift; sourceTree = "<group>"; };
 		67DFE17057430788224DCE77 /* UnlockChallenge.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = UnlockChallenge.swift; sourceTree = "<group>"; };
 		78250BD3E71ECB47028B8C50 /* StepMonitor.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StepMonitor.swift; sourceTree = "<group>"; };
 		814EC22E69E97E22FDA13197 /* RuleStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RuleStore.swift; sourceTree = "<group>"; };
+		8172C938E85FD1EDFF699CFC /* RuleBuilderViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RuleBuilderViewModel.swift; sourceTree = "<group>"; };
 		A37B8D203F9DF236FF4DC1DD /* BlockingService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BlockingService.swift; sourceTree = "<group>"; };
 		B47909E806163F76967B6C88 /* BlockCondition.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BlockCondition.swift; sourceTree = "<group>"; };
 		CDC8F2AB5391766292C1935D /* AppSettings.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
@@ -122,6 +130,17 @@
 			);
 			target = D52907152FE680B40005F066 /* FrictionGateShield */;
 		};
+		D52907A72FE6A0AB0005F066 /* Exceptions for "FrictionGate" folder in "FrictionGateMonitor" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Models/AppSettings.swift,
+				Models/BlockCondition.swift,
+				Models/Rule.swift,
+				Models/UnlockAttempt.swift,
+				Models/UnlockChallenge.swift,
+			);
+			target = D52907002FE6808D0005F066 /* FrictionGateMonitor */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -129,17 +148,22 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				D52906FC2FE67FB20005F066 /* Exceptions for "FrictionGate" folder in "FrictionGate" target */,
+				D52907A72FE6A0AB0005F066 /* Exceptions for "FrictionGate" folder in "FrictionGateMonitor" target */,
 			);
 			path = FrictionGate;
 			sourceTree = "<group>";
 		};
 		D52906E02FE67D9F0005F066 /* FrictionGateTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = FrictionGateTests;
 			sourceTree = "<group>";
 		};
 		D52906EA2FE67D9F0005F066 /* FrictionGateUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = FrictionGateUITests;
 			sourceTree = "<group>";
 		};
@@ -235,8 +259,21 @@
 				E5D2F814188FBE87688C3388 /* Models */,
 				141DF672C4D2CB0101ACD616 /* Persistence */,
 				2AB191150654F0D53AD60723 /* Services */,
+				545BC37DCFE37DCD23209F46 /* ViewModels */,
 			);
 			path = FrictionGate;
+			sourceTree = "<group>";
+		};
+		545BC37DCFE37DCD23209F46 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				45A8D5D18B8FD4BACBFE2F61 /* HomeViewModel.swift */,
+				8172C938E85FD1EDFF699CFC /* RuleBuilderViewModel.swift */,
+				1314661D56A46D9479232C12 /* UnlockViewModel.swift */,
+				2F7328097084FF82C17EF303 /* WakeUpViewModel.swift */,
+			);
+			name = ViewModels;
+			path = ViewModels;
 			sourceTree = "<group>";
 		};
 		D52906C42FE67D9D0005F066 = {
@@ -502,6 +539,10 @@
 				AC143D9F03517CE4FA03C22D /* DeviceActivityService.swift in Sources */,
 				0A5CB93F2B77C8BE66376BD5 /* WakeUpDetector.swift in Sources */,
 				87765DA089465D5CE3224CD0 /* StepMonitor.swift in Sources */,
+				BA902939C744D89EDE6DCA11 /* HomeViewModel.swift in Sources */,
+				D0227F25B41C65B4F3D6046B /* RuleBuilderViewModel.swift in Sources */,
+				67ED55F6C21FF9D1A6504BFF /* UnlockViewModel.swift in Sources */,
+				D694D7C2509E890E069E2A56 /* WakeUpViewModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
