@@ -2,6 +2,7 @@ import Foundation
 import DeviceActivity
 import ManagedSettings
 import FamilyControls
+import UserNotifications
 
 /// Registers and removes `DeviceActivityCenter` schedules on behalf of Rules.
 ///
@@ -74,13 +75,98 @@ final class DeviceActivityService {
         }
     }
 
-    /// Stops all `DeviceActivityCenter` schedules for `rule`.
+    /// Removes all `DeviceActivityCenter` schedules for `rule`.
     ///
     /// Call when a rule is deleted, deactivated, or paused.
     func removeSchedules(for rule: Rule) {
         // Probe the first 20 indices — rules won't realistically have more conditions.
         let names = (0..<20).map { activityName(for: rule.id, index: $0) }
         center.stopMonitoring(names)
+        // Also cancel any pending session-relock schedule.
+        cancelSessionRelock(for: rule.id)
+    }
+
+    // MARK: - Session relock scheduling
+
+    /// Schedules a one-shot `DeviceActivity` that fires at the exact session-expiry
+    /// moment, regardless of whether the user is still inside the blocked app.
+    ///
+    /// When `intervalDidEnd` fires in `DeviceActivityMonitorExtension`, the
+    /// extension re-applies the shield immediately — even with the blocked app
+    /// in the foreground.
+    ///
+    /// KEY: intervalStart is set to NOW (+1s) so the monitoring window is
+    /// `sessionDurationMinutes` wide.  A narrow window (e.g. 60s) is often
+    /// rejected or delayed by DeviceActivityCenter.  intervalDidEnd still fires
+    /// at the exact expiryDate regardless of how early we start.
+    func scheduleSessionRelock(for rule: Rule) {
+        guard rule.appToken != nil else { return }
+
+        let cal        = Calendar.current
+        let now        = Date()
+        let expiryDate = now.addingTimeInterval(Double(rule.sessionDurationMinutes) * 60)
+
+        // Start immediately so DeviceActivityCenter has the full session window
+        // to track the schedule — narrow windows are unreliable.
+        let startDate  = now.addingTimeInterval(1)
+        let startComps = cal.dateComponents(
+            [.year, .month, .day, .hour, .minute, .second], from: startDate)
+        let endComps   = cal.dateComponents(
+            [.year, .month, .day, .hour, .minute, .second], from: expiryDate)
+
+        let name = relockActivityName(for: rule.id)
+        center.stopMonitoring([name])
+
+        let schedule = DeviceActivitySchedule(
+            intervalStart: startComps,
+            intervalEnd:   endComps,
+            repeats:       false
+        )
+        do {
+            try center.startMonitoring(name, during: schedule)
+        } catch {
+            print("[DeviceActivityService] scheduleSessionRelock failed: \(error)")
+        }
+
+        // Belt-and-suspenders: a local notification at expiry so the user
+        // knows their session ended even if DeviceActivity has any delay.
+        scheduleRelockNotification(for: rule, expiryDate: expiryDate)
+    }
+
+    /// Cancels a previously scheduled session-relock activity for `ruleID`.
+    func cancelSessionRelock(for ruleID: UUID) {
+        center.stopMonitoring([relockActivityName(for: ruleID)])
+        UNUserNotificationCenter.current()
+            .removePendingNotificationRequests(withIdentifiers: ["fg-session-end-\(ruleID.uuidString)"])
+    }
+
+    // MARK: - Private relock notification
+
+    private func scheduleRelockNotification(for rule: Rule, expiryDate: Date) {
+        let app = rule.appDisplayName.isEmpty ? "your app" : rule.appDisplayName
+        let content = UNMutableNotificationContent()
+        content.title = "Your \(app) session just ended"
+        content.body  = "Tap to re-block \(app) in Friction now."
+        content.sound = .default
+        content.categoryIdentifier = "FRICTION_RELOCK"
+        content.userInfo = ["ruleID": rule.id.uuidString]
+
+        let trigger = UNTimeIntervalNotificationTrigger(
+            timeInterval: max(1, expiryDate.timeIntervalSinceNow),
+            repeats: false
+        )
+        let request = UNNotificationRequest(
+            identifier: "fg-session-end-\(rule.id.uuidString)",
+            content: content,
+            trigger: trigger
+        )
+        UNUserNotificationCenter.current().add(request)
+    }
+
+    /// Canonical name for session-relock activities.
+    /// Must start with `"fg-relock-"` so the monitor extension can identify them.
+    func relockActivityName(for ruleID: UUID) -> DeviceActivityName {
+        DeviceActivityName("fg-relock-\(ruleID.uuidString)")
     }
 
     // MARK: - Helpers

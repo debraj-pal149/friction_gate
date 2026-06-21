@@ -2,8 +2,6 @@
 //  ShieldActionExtension.swift
 //  FrictionGateShield
 //
-//  Created by Debraj Pal on 20/06/26.
-//
 // ⚠️  NO ADDITIONAL TARGET MEMBERSHIP REQUIRED FOR THIS FILE
 //
 // This extension does not import any Phase 1 model types.  It finds the
@@ -14,18 +12,24 @@
 // (Xcode should have done this automatically):
 //   - ManagedSettings
 //   - FamilyControls
+//   - UserNotifications
 //
-// NOTE: UIApplication.shared is unavailable in all iOS app extensions.
-// Instead of opening a URL directly, this extension writes a "pending unlock"
-// record to the App Group UserDefaults and returns .defer.  The main app reads
-// this key on every foreground (scenePhase == .active) and presents the unlock
-// screen automatically.  No URL scheme or UIApplication access required.
+// HOW THE UNLOCK FLOW WORKS:
+//
+//   1. User taps "Switch to Friction →" on the shield overlay.
+//   2. This extension writes the ruleID to App Group UserDefaults and
+//      schedules an immediate local push notification ("Tap to unlock in Friction").
+//   3. .close is returned — the blocked app is dismissed, user sees home screen.
+//   4. The notification banner appears; user taps it → iOS opens Friction.
+//   5. FrictionGateApp reads the pending ruleID on scenePhase == .active
+//      and presents the unlock challenge screen immediately.
+//   6. On challenge completion, BlockingService.removeShield clears the block.
 
 import Foundation
 import ManagedSettings
 import FamilyControls
+import UserNotifications
 
-// Make sure that your class name matches the NSExtensionPrincipalClass in your Info.plist.
 class ShieldActionExtension: ShieldActionDelegate {
 
     // MARK: - Shared storage
@@ -37,11 +41,9 @@ class ShieldActionExtension: ShieldActionDelegate {
         return d
     }()
 
-    // Must match the key written by RuleStore.
     private let selectionsKey = "stored_selections"
 
     /// Written by the extension; read by the main app on every foreground.
-    /// Value: the UUID string of the rule waiting to be unlocked, or nil when cleared.
     static let pendingUnlockRuleIDKey = "pending_unlock_rule_id"
 
     // MARK: - Application shield handler
@@ -54,22 +56,27 @@ class ShieldActionExtension: ShieldActionDelegate {
         switch action {
 
         case .primaryButtonPressed:
-            // The shield's primary button is labelled "Request Unlock"
-            // (configured via ShieldConfiguration in the monitor extension).
-            //
-            // Write the target rule ID to the App Group so the main app can
-            // read it on next foreground and present the unlock screen.
-            // UIApplication.shared is unavailable in extensions — UserDefaults
-            // is the only safe cross-process signalling mechanism here.
-            if let ruleID = ruleID(for: application) {
+            let ruleID = ruleID(for: application)
+
+            // 1. Write the pending ruleID + a timestamp so the main app can
+            //    ignore stale requests (e.g. tapped hours ago, never completed).
+            if let ruleID {
                 defaults.set(ruleID, forKey: ShieldActionExtension.pendingUnlockRuleIDKey)
+                defaults.set(Date().timeIntervalSince1970,
+                             forKey: "pending_unlock_timestamp")
             }
-            // .defer keeps the shield active; the main app removes it after
-            // the challenge is completed via BlockingService.removeShield(for:).
-            completionHandler(.defer)
+
+            // 2. Fire an immediate local notification that opens Friction when tapped.
+            //    This is the only reliable cross-process mechanism on iOS —
+            //    UIApplication / URL schemes are unavailable in shield extensions.
+            scheduleUnlockNotification(ruleID: ruleID, appToken: application)
+
+            // 3. .close dismisses the blocked app → user lands on home screen.
+            //    The notification banner appears immediately and tapping it
+            //    opens Friction, which then shows the unlock challenge.
+            completionHandler(.close)
 
         case .secondaryButtonPressed:
-            // "Cancel" — dismiss without unlocking.
             completionHandler(.close)
 
         @unknown default:
@@ -95,16 +102,35 @@ class ShieldActionExtension: ShieldActionDelegate {
         completionHandler(.close)
     }
 
+    // MARK: - Local notification
+
+    private func scheduleUnlockNotification(ruleID: String?, appToken: ApplicationToken) {
+        let content = UNMutableNotificationContent()
+
+        // Look up the app name for a friendlier notification title.
+        let appName = ruleID.flatMap { appDisplayName(for: $0) } ?? "your blocked app"
+
+        content.title = "Unlock \(appName)"
+        content.body  = "Tap to open Friction and complete your challenge."
+        content.sound = .default
+        content.categoryIdentifier = "FRICTION_UNLOCK"
+
+        if let ruleID {
+            content.userInfo = ["ruleID": ruleID]
+        }
+
+        // nil trigger = deliver immediately.
+        let request = UNNotificationRequest(
+            identifier: "friction-unlock-\(ruleID ?? UUID().uuidString)",
+            content: content,
+            trigger: nil
+        )
+
+        UNUserNotificationCenter.current().add(request)
+    }
+
     // MARK: - Token → ruleID lookup
 
-    /// Searches the `stored_selections` map in the App Group UserDefaults for
-    /// a `FamilyActivitySelection` whose `applicationTokens` contains `token`.
-    ///
-    /// Returns the matching rule ID string, or `nil` if no match is found.
-    ///
-    /// This does NOT require the Phase 1 model files to be in this target because
-    /// it only decodes `FamilyActivitySelection` (from FamilyControls) and a plain
-    /// `[String: Data]` dictionary — no `Rule` or `BlockCondition` types needed.
     private func ruleID(for token: ApplicationToken) -> String? {
         guard
             let outerData = defaults.data(forKey: selectionsKey),
@@ -122,4 +148,24 @@ class ShieldActionExtension: ShieldActionDelegate {
         }
         return nil
     }
+
+    // MARK: - App display name lookup
+
+    private func appDisplayName(for ruleID: String) -> String? {
+        guard
+            let rulesData = defaults.data(forKey: "stored_rules"),
+            let rules     = try? JSONDecoder().decode([StoredRuleStub].self, from: rulesData),
+            let rule      = rules.first(where: { $0.id == ruleID }),
+            !rule.appDisplayName.isEmpty,
+            rule.appDisplayName.lowercased() != "selected app"
+        else { return nil }
+        return rule.appDisplayName
+    }
+}
+
+// MARK: - Minimal rule stub (id + appDisplayName only)
+
+private struct StoredRuleStub: Decodable {
+    let id: String
+    let appDisplayName: String
 }

@@ -71,11 +71,11 @@ class ShieldConfigurationExtension: ShieldConfigurationDataSource {
                 color: .label
             ),
             subtitle: ShieldConfiguration.Label(
-                text:  "A Friction block rule is active",
+                text:  "Open Friction to complete a challenge and unlock this app.",
                 color: .secondaryLabel
             ),
             primaryButtonLabel: ShieldConfiguration.Label(
-                text:  "Unlock in Friction",
+                text:  "Switch to Friction",
                 color: .white
             ),
             primaryButtonBackgroundColor: UIColor.systemBlue

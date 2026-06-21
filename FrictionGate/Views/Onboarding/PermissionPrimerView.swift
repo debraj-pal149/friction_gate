@@ -50,7 +50,7 @@ struct PermissionPrimerView: View {
                             .font(.title2.bold())
                             .multilineTextAlignment(.center)
 
-                        Text("Apple will ask you for Screen Time access.\nYou **must tap Allow** — this is the only way Friction can block apps.")
+                        Text("Apple will ask you for Screen Time access.\nYou **must tap Allow**. This is the only way Friction can block apps.")
                             .font(.body)
                             .multilineTextAlignment(.center)
                             .foregroundColor(.secondary)
@@ -85,7 +85,7 @@ struct PermissionPrimerView: View {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .foregroundColor(.orange)
                             .font(.title3)
-                        Text("If you tap **Don't Allow**, Friction cannot block any apps — the app will have no functionality whatsoever. You can change this later in Settings → Screen Time, but you must come back and grant access.")
+                        Text("If you tap **Don't Allow**, Friction cannot block any apps. The app will have no functionality whatsoever. You can change this later in Settings → Screen Time, but you must come back and grant access.")
                             .font(.footnote)
                             .foregroundColor(.secondary)
                     }
@@ -97,7 +97,7 @@ struct PermissionPrimerView: View {
                     // "Why?" expandable
                     DisclosureGroup("Why does Friction need this?", isExpanded: $showDetail) {
                         Text(
-                            "iOS doesn't allow apps to block other apps by default. Apple created the Screen Time framework specifically for parental controls and focus tools. Friction uses this framework under an Apple-approved developer entitlement. The permission you are granting is to iOS's own Screen Time system — not to any third-party server. Friction has no backend and stores all data on your device."
+                            "iOS doesn't allow apps to block other apps by default. Apple created the Screen Time framework specifically for parental controls and focus tools. Friction uses this framework under an Apple-approved developer entitlement. The permission you are granting is to iOS's own Screen Time system, not to any third-party server. Friction has no backend and stores all data on your device."
                         )
                         .font(.footnote)
                         .foregroundColor(.secondary)

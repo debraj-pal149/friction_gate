@@ -4,23 +4,26 @@ import FamilyControls
 
 /// Applies and removes `ManagedSettings` shields in the main app process.
 ///
-/// ## Responsibility split
-/// - **Time-window and before-sleep blocks** are primarily activated by the
-///   `FrictionGateMonitor` extension responding to `DeviceActivityCenter` callbacks.
-///   `BlockingService` acts as a runtime fallback and handles immediate state
-///   changes (rule creation, pause/unpause, deletion).
-/// - **afterWakeUp blocks** are handled here because they cannot be expressed
-///   as a `DeviceActivitySchedule` — they depend on runtime idle-gap detection
-///   by `WakeUpDetector`.
-/// - **dailyOpenLimit blocks** are triggered by the monitor extension's
-///   `eventDidReachThreshold` callback; this class only removes those shields
-///   when a rule is deactivated or unlocked.
+/// ## Cross-process shield state
+/// `ManagedSettingsStore` is per-process: the main app can only read shields it
+/// wrote itself.  When the monitor extension applies a shield (via DeviceActivity
+/// callbacks), the main app's `managedStore` is unaware of it.
+///
+/// To give every process a single source of truth, `applyShield` / `removeShield`
+/// also write a `shielded_<ruleID>` boolean to the shared App Group UserDefaults.
+/// `isShielded(_:)` reads from UserDefaults, not from `managedStore`, so it
+/// correctly reflects shields applied by either process.
+///
+/// The monitor extension mirrors this pattern in its own `applyShield` /
+/// `removeShield` helpers.
 @MainActor
 final class BlockingService {
 
     static let shared = BlockingService()
 
     private let managedStore = ManagedSettingsStore()
+
+    private let defaults = UserDefaults(suiteName: "group.com.debrajpal.frictiongate")
 
     // MARK: - Apply / remove by token set
 
@@ -45,16 +48,24 @@ final class BlockingService {
     func applyShield(for rule: Rule) {
         guard let token = rule.appToken else { return }
         applyShield(for: [token])
+        defaults?.set(true, forKey: shieldKey(rule.id))
     }
 
     func removeShield(for rule: Rule) {
         guard let token = rule.appToken else { return }
         removeShield(for: [token])
+        defaults?.removeObject(forKey: shieldKey(rule.id))
     }
 
+    /// Reads cross-process shield state from App Group UserDefaults.
+    /// This correctly reflects shields applied by either the main app or the
+    /// monitor extension, unlike reading from `managedStore` which is per-process.
     func isShielded(_ rule: Rule) -> Bool {
-        guard let token = rule.appToken else { return false }
-        return managedStore.shield.applications?.contains(token) ?? false
+        defaults?.bool(forKey: shieldKey(rule.id)) ?? false
+    }
+
+    private func shieldKey(_ ruleID: UUID) -> String {
+        "shielded_\(ruleID.uuidString)"
     }
 
     // MARK: - Full condition evaluation

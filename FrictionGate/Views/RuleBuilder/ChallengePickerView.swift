@@ -102,7 +102,7 @@ struct ChallengePickerView: View {
         } header: {
             Label("Write a Reason", systemImage: "pencil.and.list.clipboard")
         } footer: {
-            Text("Ask the user to write a short reason for why they want to unlock. No verification — just adds friction and self-reflection.")
+            Text("Ask the user to write a short reason for why they want to unlock. No verification, just adds friction and self-reflection.")
         }
     }
 

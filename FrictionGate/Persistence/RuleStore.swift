@@ -8,20 +8,12 @@ import FamilyControls
 /// the main app, `FrictionGateMonitor`, and `FrictionGateShield` all read from
 /// the same `UserDefaults` suite.
 ///
-/// ## Storage layout (UserDefaults keys)
-/// | Key                  | Type      | Contents                                      |
-/// |----------------------|-----------|-----------------------------------------------|
-/// | `stored_rules`       | `Data`    | `JSONEncoder` output of `[Rule]`              |
-/// | `stored_selections`  | `Data`    | `PropertyListEncoder` output of `[String: Data]` (ruleID → plist of `FamilyActivitySelection`) |
-/// | `stored_attempts`    | `Data`    | `JSONEncoder` output of `[String: UnlockAttempt]` (ruleID → attempt) |
-/// | `app_settings`       | `Data`    | `JSONEncoder` output of `AppSettings`         |
-///
-/// ## FamilyActivitySelection archiving
-/// `FamilyActivitySelection` (the result of `FamilyActivityPicker`) is a Swift
-/// struct that conforms to `Codable` but whose internal `ApplicationToken` values
-/// are opaque.  The safe approach is to encode the *entire selection* with
-/// `PropertyListEncoder` and store it separately, then reattach it to each `Rule`
-/// at load time.  This keeps `ApplicationToken` out of the JSON layer entirely.
+/// ## Startup performance
+/// `FamilyActivitySelection` decoding via `PropertyListDecoder` is expensive
+/// (it runs NSKeyedUnarchiver internally).  `init()` decodes rules on a
+/// background thread and assigns to `rules` on `@MainActor` when done, so
+/// the first frame renders immediately with an empty list rather than blocking
+/// for several seconds.
 @MainActor
 final class RuleStore: ObservableObject {
 
@@ -29,8 +21,7 @@ final class RuleStore: ObservableObject {
 
     private let defaults: UserDefaults = {
         guard let d = UserDefaults(suiteName: "group.com.debrajpal.frictiongate") else {
-            fatalError("App Group 'group.com.debrajpal.frictiongate' is not configured. " +
-                       "Add it under Signing & Capabilities in Xcode.")
+            fatalError("App Group 'group.com.debrajpal.frictiongate' is not configured.")
         }
         return d
     }()
@@ -48,57 +39,108 @@ final class RuleStore: ObservableObject {
     @Published var unlockAttempts: [UUID: UnlockAttempt] = [:]
     @Published var appSettings: AppSettings = .default
 
+    /// True while the initial async rule decode is still running.
+    /// Use in UI to show a skeleton/placeholder rather than an empty state.
+    @Published var isLoadingRules: Bool = true
+
+    // MARK: - In-memory selection map cache
+    //
+    // Caching avoids deserialising the entire [String: Data] map from
+    // UserDefaults on every save() call, which was a major source of
+    // unnecessary memory pressure and GC churn.
+
+    private var cachedSelectionMap: [String: Data] = [:]
+
     // MARK: - Init
 
     init() {
-        load()
-    }
-
-    // MARK: - Load
-
-    func load() {
-        loadRules()
+        // Fast synchronous loads — these only touch simple JSON blobs.
         loadAttempts()
         loadSettings()
+
+        // Snapshot the raw bytes while still on the main thread.
+        let rulesSnapshot      = defaults.data(forKey: Keys.rules)
+        let selectionsSnapshot = defaults.data(forKey: Keys.selections)
+
+        // Decode rules on a background thread so the first frame renders
+        // without waiting for NSKeyedUnarchiver to process FamilyActivitySelection.
+        Task { [weak self] in
+            guard let self else { return }
+            let (decoded, selMap) = await Self.backgroundDecodeRules(
+                rulesData:      rulesSnapshot,
+                selectionsData: selectionsSnapshot
+            )
+            self.cachedSelectionMap = selMap
+            self.rules              = decoded
+            self.isLoadingRules     = false
+        }
     }
 
-    private func loadRules() {
-        guard let data = defaults.data(forKey: Keys.rules) else { return }
-        do {
-            var decoded = try JSONDecoder().decode([Rule].self, from: data)
-            let selectionMap = loadSelectionMap()
+    // MARK: - Background decode (runs off main actor)
+
+    private static func backgroundDecodeRules(
+        rulesData:      Data?,
+        selectionsData: Data?
+    ) async -> ([Rule], [String: Data]) {
+        await Task.detached(priority: .userInitiated) {
+            // Decode the selection map once.
+            let selMap: [String: Data]
+            if let sd = selectionsData,
+               let map = try? JSONDecoder().decode([String: Data].self, from: sd) {
+                selMap = map
+            } else {
+                selMap = [:]
+            }
+
+            guard let data = rulesData,
+                  var decoded = try? JSONDecoder().decode([Rule].self, from: data)
+            else { return ([], selMap) }
+
+            // Reattach FamilyActivitySelection to each rule.
             for i in decoded.indices {
                 let key = decoded[i].id.uuidString
-                if let selData = selectionMap[key],
-                   let selection = try? PropertyListDecoder().decode(FamilyActivitySelection.self, from: selData) {
-                    decoded[i].activitySelection = selection
+                if let selData = selMap[key],
+                   let sel = try? PropertyListDecoder()
+                       .decode(FamilyActivitySelection.self, from: selData) {
+                    decoded[i].activitySelection = sel
                 }
             }
-            rules = decoded
-        } catch {
-            print("[RuleStore] Failed to load rules: \(error)")
+            return (decoded, selMap)
+        }.value
+    }
+
+    // MARK: - Load (for manual refresh, e.g. foreground)
+
+    func load() {
+        let rulesSnapshot      = defaults.data(forKey: Keys.rules)
+        let selectionsSnapshot = defaults.data(forKey: Keys.selections)
+        loadAttempts()
+        loadSettings()
+        Task { [weak self] in
+            guard let self else { return }
+            let (decoded, selMap) = await Self.backgroundDecodeRules(
+                rulesData:      rulesSnapshot,
+                selectionsData: selectionsSnapshot
+            )
+            self.cachedSelectionMap = selMap
+            self.rules              = decoded
         }
     }
 
     private func loadAttempts() {
         guard let data = defaults.data(forKey: Keys.attempts) else { return }
-        do {
-            let decoded = try JSONDecoder().decode([String: UnlockAttempt].self, from: data)
+        if let decoded = try? JSONDecoder().decode([String: UnlockAttempt].self, from: data) {
             unlockAttempts = Dictionary(uniqueKeysWithValues: decoded.compactMap { key, attempt in
                 guard let uuid = UUID(uuidString: key) else { return nil }
                 return (uuid, attempt)
             })
-        } catch {
-            print("[RuleStore] Failed to load unlock attempts: \(error)")
         }
     }
 
     private func loadSettings() {
         guard let data = defaults.data(forKey: Keys.settings) else { return }
-        do {
-            appSettings = try JSONDecoder().decode(AppSettings.self, from: data)
-        } catch {
-            print("[RuleStore] Failed to load app settings: \(error)")
+        if let decoded = try? JSONDecoder().decode(AppSettings.self, from: data) {
+            appSettings = decoded
         }
     }
 
@@ -108,7 +150,8 @@ final class RuleStore: ObservableObject {
         do {
             let data = try JSONEncoder().encode(rules)
             defaults.set(data, forKey: Keys.rules)
-            try saveSelectionMap()
+            // Use the in-memory cache — no need to re-decode from UserDefaults.
+            try persistSelectionMap(cachedSelectionMap)
         } catch {
             print("[RuleStore] Failed to save rules: \(error)")
         }
@@ -116,45 +159,29 @@ final class RuleStore: ObservableObject {
 
     // MARK: - FamilyActivitySelection archiving
 
-    /// Encodes and persists a `FamilyActivitySelection` keyed by its rule ID.
-    ///
-    /// Call this immediately after the user picks an app in `FamilyActivityPicker`
-    /// and you've set `rule.activitySelection`.
     func saveSelection(_ selection: FamilyActivitySelection, for ruleID: UUID) throws {
-        var map = loadSelectionMap()
         let encoded = try PropertyListEncoder().encode(selection)
-        map[ruleID.uuidString] = encoded
-        try persistSelectionMap(map)
-    }
-
-    private func saveSelectionMap() throws {
-        var map: [String: Data] = [:]
-        for rule in rules {
-            guard let selection = rule.activitySelection else { continue }
-            map[rule.id.uuidString] = try PropertyListEncoder().encode(selection)
-        }
-        try persistSelectionMap(map)
+        cachedSelectionMap[ruleID.uuidString] = encoded
+        try persistSelectionMap(cachedSelectionMap)
     }
 
     private func persistSelectionMap(_ map: [String: Data]) throws {
-        // Store the inner Data values directly; the outer dict is JSON-encoded.
-        // PropertyListEncoder handles the FamilyActivitySelection → Data step above;
-        // JSON handles the [String: Data] → Data step here (Data encodes as base-64).
         let outer = try JSONEncoder().encode(map)
         defaults.set(outer, forKey: Keys.selections)
     }
 
     private func loadSelectionMap() -> [String: Data] {
+        if !cachedSelectionMap.isEmpty { return cachedSelectionMap }
         guard let outer = defaults.data(forKey: Keys.selections),
               let map = try? JSONDecoder().decode([String: Data].self, from: outer)
         else { return [:] }
+        cachedSelectionMap = map
         return map
     }
 
     private func removeSelection(for id: UUID) {
-        var map = loadSelectionMap()
-        map.removeValue(forKey: id.uuidString)
-        try? persistSelectionMap(map)
+        cachedSelectionMap.removeValue(forKey: id.uuidString)
+        try? persistSelectionMap(cachedSelectionMap)
     }
 
     // MARK: - Rules CRUD
@@ -175,6 +202,11 @@ final class RuleStore: ObservableObject {
     func update(_ rule: Rule) {
         guard let index = rules.firstIndex(where: { $0.id == rule.id }) else { return }
         rules[index] = rule
+        // Re-encode the selection into the cache if it's present on the rule.
+        if let sel = rule.activitySelection,
+           let encoded = try? PropertyListEncoder().encode(sel) {
+            cachedSelectionMap[rule.id.uuidString] = encoded
+        }
         save()
     }
 

@@ -30,9 +30,9 @@ struct EscalationPickerView: View {
             Label("Session Duration", systemImage: "hourglass")
         } footer: {
             Text(
-                "After you complete the unlock challenge, you have \(vm.sessionDurationMinutes) " +
-                "minute\(vm.sessionDurationMinutes == 1 ? "" : "s") before Friction re-locks the app. " +
-                "This means every unlock session is intentional and time-limited."
+                "Once you complete the challenge, the app unlocks for \(vm.sessionDurationMinutes) " +
+                "minute\(vm.sessionDurationMinutes == 1 ? "" : "s"). It locks again automatically " +
+                "after that, even if you're still using it."
             )
         }
     }
@@ -62,7 +62,7 @@ struct EscalationPickerView: View {
             } else {
                 Text(
                     "When enabled, rapid repeated unlocks become progressively harder. " +
-                    "Each unlock within the window multiplies the challenge difficulty — " +
+                    "Each unlock within the window multiplies the challenge difficulty. " +
                     "maths problems grow in count, waits grow in length, steps increase. " +
                     "A powerful tool if you want maximum friction on habitual use."
                 )

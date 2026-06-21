@@ -19,12 +19,10 @@ struct RuleOptionsView: View {
     private var deletePhrase: String {
         let name = rule.appDisplayName
             .trimmingCharacters(in: .whitespaces)
-            .lowercased()
-        // If the rule has no app name (legacy rules created before auto-population),
-        // fall back to a fixed phrase so there's never a trailing space.
-        return name.isEmpty
+        let isPlaceholder = name.isEmpty || name.lowercased() == "selected app"
+        return isPlaceholder
             ? "I want to permanently delete this rule"
-            : "I want to permanently delete \(name)"
+            : "I want to permanently delete \(name.lowercased())"
     }
 
     /// Both sides are trimmed and lowercased so autocorrect, trailing spaces,
@@ -57,32 +55,141 @@ struct RuleOptionsView: View {
         }
     }
 
-    // MARK: - Rule info header
+    // MARK: - Rule info (full details)
 
     private var ruleInfoSection: some View {
-        Section {
-            HStack(spacing: 14) {
-                AppIconView(appName: rule.appDisplayName,
-                            bundleID: rule.appBundleID, size: 46)
+        Group {
+            // App identity
+            Section {
+                HStack(spacing: 14) {
+                    AppIconView(appName: rule.appDisplayName,
+                                bundleID: rule.appBundleID, size: 52)
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(rule.appDisplayName)
-                        .font(.headline)
-                    if let cond = rule.conditions.first {
-                        Text(cond.displayDescription)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    if rule.challenges.isEmpty == false {
-                        Text(rule.challenges.map(\.displayName).joined(separator: " · "))
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(rule.appDisplayName.isEmpty ? "Unnamed App" : rule.appDisplayName)
+                            .font(.title3.bold())
+                        HStack(spacing: 6) {
+                            statusBadge
+                        }
                     }
                 }
+                .padding(.vertical, 6)
+            } header: {
+                Text("App")
             }
-            .padding(.vertical, 4)
-        } header: {
-            Text("Rule")
+
+            // Block conditions
+            if !rule.conditions.isEmpty {
+                Section {
+                    ForEach(rule.conditions.indices, id: \.self) { i in
+                        Label(rule.conditions[i].displayDescription,
+                              systemImage: conditionIcon(rule.conditions[i]))
+                            .font(.subheadline)
+                    }
+                } header: {
+                    Label("When It Blocks", systemImage: "clock.badge.xmark")
+                }
+            }
+
+            // Unlock challenges
+            if !rule.challenges.isEmpty {
+                Section {
+                    ForEach(rule.challenges.indices, id: \.self) { i in
+                        Label(rule.challenges[i].longDescription,
+                              systemImage: challengeIcon(rule.challenges[i]))
+                            .font(.subheadline)
+                    }
+                } header: {
+                    Label("Unlock Challenges", systemImage: "lock.open")
+                }
+            }
+
+            // Session & escalation
+            Section {
+                Label(
+                    "\(rule.sessionDurationMinutes) min session after each unlock",
+                    systemImage: "hourglass"
+                )
+                .font(.subheadline)
+
+                if rule.escalationEnabled {
+                    Label(
+                        "Escalation on · window: \(rule.escalationWindowMinutes) min",
+                        systemImage: "arrow.up.right.circle.fill"
+                    )
+                    .font(.subheadline)
+                    .foregroundColor(.orange)
+                } else {
+                    Label("Escalation off", systemImage: "arrow.up.right.circle")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+            } header: {
+                Label("Session & Escalation", systemImage: "dial.medium")
+            }
+
+            // Unlock history
+            Section {
+                detailRow("Total unlocks", value: "\(rule.unlockCount)")
+                if let last = rule.lastUnlockedAt {
+                    detailRow("Last unlocked", value: last.formatted(.relative(presentation: .named)))
+                } else {
+                    detailRow("Last unlocked", value: "Never")
+                }
+                detailRow("Created", value: rule.createdAt.formatted(date: .abbreviated, time: .omitted))
+            } header: {
+                Label("History", systemImage: "chart.bar")
+            }
+        }
+    }
+
+    // MARK: - Helpers
+
+    private var statusBadge: some View {
+        Group {
+            if !rule.isActive {
+                badge("Paused", color: .orange)
+            } else {
+                badge("Active", color: .green)
+            }
+        }
+    }
+
+    private func badge(_ text: String, color: Color) -> some View {
+        Text(text)
+            .font(.caption2.bold())
+            .foregroundColor(color)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(color.opacity(0.15))
+            .clipShape(Capsule())
+    }
+
+    private func detailRow(_ label: String, value: String) -> some View {
+        HStack {
+            Text(label).foregroundColor(.secondary)
+            Spacer()
+            Text(value).fontWeight(.medium)
+        }
+        .font(.subheadline)
+    }
+
+    private func conditionIcon(_ condition: BlockCondition) -> String {
+        switch condition {
+        case .timeWindow:     return "clock"
+        case .afterWakeUp:    return "sunrise"
+        case .beforeSleep:    return "moon"
+        case .dailyOpenLimit: return "chart.bar"
+        }
+    }
+
+    private func challengeIcon(_ challenge: UnlockChallenge) -> String {
+        switch challenge {
+        case .steps:        return "figure.walk"
+        case .maths:        return "function"
+        case .typeSentence: return "keyboard"
+        case .wait:         return "timer"
+        case .writeReason:  return "pencil.and.list.clipboard"
         }
     }
 
@@ -128,7 +235,7 @@ struct RuleOptionsView: View {
                     Image(systemName: canDelete ? "checkmark.circle.fill" : "circle")
                         .foregroundColor(canDelete ? .green : .secondary)
                     Text(canDelete
-                         ? "Phrase matched — confirm below"
+                         ? "Phrase matched. Confirm below"
                          : "\(matched) / \(target.count) characters")
                         .font(.caption)
                         .foregroundColor(canDelete ? .green : .secondary)

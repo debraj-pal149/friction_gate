@@ -146,7 +146,7 @@ final class RuleBuilderViewModel: ObservableObject {
         ]
         if escalationEnabled {
             lines.append(
-                "Escalation is on — each unlock within \(escalationWindowMinutes) min " +
+                "Escalation is on. Each unlock within \(escalationWindowMinutes) min " +
                 "makes the next challenge harder (up to 5×)."
             )
         }

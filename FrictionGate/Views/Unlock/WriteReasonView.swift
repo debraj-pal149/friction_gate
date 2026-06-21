@@ -16,7 +16,7 @@ struct WriteReasonView: View {
                     Text("Why do you want to open this app?")
                         .font(.headline)
                         .multilineTextAlignment(.center)
-                    Text("Write at least a sentence or two. No one will read it — this is just for you.")
+                    Text("Write at least a sentence or two. No one will read it. This is just for you.")
                         .font(.footnote)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)

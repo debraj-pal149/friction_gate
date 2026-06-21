@@ -21,10 +21,13 @@ struct MathsChallengeView: View {
                 if let problem = vm.mathsProblems[safe: vm.mathsIndex] {
                     VStack(spacing: 12) {
                         Text(problem.question)
-                            .font(.system(size: 52, weight: .bold, design: .rounded))
+                            .font(.system(size: 44, weight: .bold, design: .rounded))
                             .monospacedDigit()
+                            .multilineTextAlignment(.center)
+                            .minimumScaleFactor(0.6)
+                            .lineLimit(2)
                         Text("= ?")
-                            .font(.system(size: 36, weight: .medium))
+                            .font(.system(size: 32, weight: .medium))
                             .foregroundColor(.secondary)
                     }
                     .frame(maxWidth: .infinity)
@@ -51,7 +54,7 @@ struct MathsChallengeView: View {
                         .padding(.horizontal)
 
                     if vm.mathsAnswerWrong {
-                        Text("Incorrect — try again")
+                        Text("Incorrect, try again")
                             .font(.footnote.bold())
                             .foregroundColor(.red)
                     }

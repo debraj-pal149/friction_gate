@@ -33,6 +33,7 @@
 		D52908282FE6C1350005F066 /* ManagedSettings.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D52907172FE680B40005F066 /* ManagedSettings.framework */; };
 		D529082A2FE6C1350005F066 /* ManagedSettingsUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D52908292FE6C1350005F066 /* ManagedSettingsUI.framework */; };
 		D52908322FE6C1350005F066 /* FrictionGateShieldConfig.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = D52908272FE6C1350005F066 /* FrictionGateShieldConfig.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		D52908BD2FE78B590005F066 /* UserNotifications.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D52908BC2FE78B590005F066 /* UserNotifications.framework */; };
 		D694D7C2509E890E069E2A56 /* WakeUpViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F7328097084FF82C17EF303 /* WakeUpViewModel.swift */; };
 		E4E1400FC0E8CB38CA3264B0 /* HealthKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E69070F1FF772DE3985385D5 /* HealthKitService.swift */; };
 		F27BFDEBDF8185A06C051C79 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDC8F2AB5391766292C1935D /* AppSettings.swift */; };
@@ -117,6 +118,7 @@
 		D52907A32FE690C60005F066 /* HealthKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = HealthKit.framework; path = System/Library/Frameworks/HealthKit.framework; sourceTree = SDKROOT; };
 		D52908272FE6C1350005F066 /* FrictionGateShieldConfig.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = FrictionGateShieldConfig.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		D52908292FE6C1350005F066 /* ManagedSettingsUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ManagedSettingsUI.framework; path = System/Library/Frameworks/ManagedSettingsUI.framework; sourceTree = SDKROOT; };
+		D52908BC2FE78B590005F066 /* UserNotifications.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UserNotifications.framework; path = System/Library/Frameworks/UserNotifications.framework; sourceTree = SDKROOT; };
 		E69070F1FF772DE3985385D5 /* HealthKitService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HealthKitService.swift; sourceTree = "<group>"; };
 		FC06036320520C2F1B3C2B11 /* WakeUpDetector.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WakeUpDetector.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -249,6 +251,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D52908BD2FE78B590005F066 /* UserNotifications.framework in Frameworks */,
 				D52907622FE68BE60005F066 /* FamilyControls.framework in Frameworks */,
 				D52907182FE680B40005F066 /* ManagedSettings.framework in Frameworks */,
 			);
@@ -339,6 +342,7 @@
 		D52907022FE6808D0005F066 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				D52908BC2FE78B590005F066 /* UserNotifications.framework */,
 				D52907A32FE690C60005F066 /* HealthKit.framework */,
 				D529075D2FE68BB60005F066 /* FamilyControls.framework */,
 				D52907032FE6808D0005F066 /* DeviceActivity.framework */,
@@ -813,6 +817,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = FrictionGate/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Friction;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -845,6 +850,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = FrictionGate/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Friction;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

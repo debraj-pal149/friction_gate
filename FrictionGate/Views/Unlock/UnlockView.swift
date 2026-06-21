@@ -88,7 +88,7 @@ struct UnlockView: View {
     private var escalationBanner: some View {
         HStack(spacing: 8) {
             Image(systemName: "flame.fill")
-            Text("Escalation active — \(vm.currentMultiplier)× difficulty")
+            Text("Escalation active · \(vm.currentMultiplier)× harder")
                 .font(.subheadline.bold())
         }
         .foregroundColor(.white)

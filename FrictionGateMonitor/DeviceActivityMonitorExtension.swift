@@ -50,6 +50,9 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     override func intervalDidStart(for activity: DeviceActivityName) {
         super.intervalDidStart(for: activity)
 
+        // Session-relock activities only care about intervalDidEnd — ignore start.
+        guard !activity.rawValue.hasPrefix("fg-relock-") else { return }
+
         guard let (ruleIDString, conditionIndex) = parseActivity(activity),
               var rule = loadRule(id: ruleIDString)
         else { return }
@@ -71,6 +74,26 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     override func intervalDidEnd(for activity: DeviceActivityName) {
         super.intervalDidEnd(for: activity)
 
+        let raw = activity.rawValue
+
+        // Session-relock schedule: fg-relock-<UUID>
+        // This fires at the exact moment the user's unlock session expires —
+        // even if the user is still actively using the blocked app.
+        if raw.hasPrefix("fg-relock-") {
+            let ruleIDString = String(raw.dropFirst("fg-relock-".count))
+            guard var rule = loadRule(id: ruleIDString) else { return }
+
+            // Clear the session key — it has now expired.
+            defaults.removeObject(forKey: "session_expires_\(ruleIDString)")
+
+            // Re-apply the shield. If the user is currently inside the blocked
+            // app, iOS will show the shield overlay immediately.
+            applyShield(for: &rule)
+            return
+        }
+
+        // Regular condition schedule: fg-<UUID>-<conditionIndex>
+        // The block window has ended — remove the shield.
         guard let (ruleIDString, _) = parseActivity(activity),
               var rule = loadRule(id: ruleIDString)
         else { return }
@@ -121,6 +144,9 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         var current = managedStore.shield.applications ?? []
         current.insert(token)
         managedStore.shield.applications = current
+        // Mirror state into shared UserDefaults so the main app's
+        // BlockingService.isShielded() returns the correct value.
+        defaults.set(true, forKey: "shielded_\(rule.id.uuidString)")
     }
 
     private func removeShield(for rule: inout Rule) {
@@ -128,6 +154,7 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         guard var current = managedStore.shield.applications else { return }
         current.remove(token)
         managedStore.shield.applications = current.isEmpty ? nil : current
+        defaults.removeObject(forKey: "shielded_\(rule.id.uuidString)")
     }
 
     // MARK: - Rule loading from App Group UserDefaults

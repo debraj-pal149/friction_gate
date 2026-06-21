@@ -52,7 +52,7 @@ struct RuleReviewView: View {
 
                 if vm.escalationEnabled {
                     Label(
-                        "Escalation on — window: \(vm.escalationWindowMinutes) min",
+                        "Escalation on, window: \(vm.escalationWindowMinutes) min",
                         systemImage: "arrow.up.right.circle"
                     )
                     .font(.subheadline)

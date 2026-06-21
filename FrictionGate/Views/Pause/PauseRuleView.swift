@@ -72,7 +72,7 @@ struct PauseRuleView: View {
                     Text("Your Input")
                 } footer: {
                     if !typedText.isEmpty && !exactMatch {
-                        Text("Keep typing — must match exactly.")
+                        Text("Keep typing to match exactly.")
                             .foregroundColor(.orange)
                     }
                 }

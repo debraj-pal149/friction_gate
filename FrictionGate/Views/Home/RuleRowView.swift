@@ -3,13 +3,15 @@ import SwiftUI
 struct RuleRowView: View {
 
     let rule: Rule
-    let onToggleActive: () -> Void
+    /// Whether the app is currently shielded (blocked) — drives the toggle.
+    let isShielded: Bool
+    let onToggleTap: () -> Void
     let onOptions: () -> Void
 
     var body: some View {
         HStack(spacing: 14) {
             AppIconView(appName: rule.appDisplayName, bundleID: rule.appBundleID, size: 46)
-                .opacity(rule.isActive ? 1 : 0.45)
+                .opacity(isShielded ? 1 : 0.5)
 
             info
             Spacer(minLength: 8)
@@ -33,8 +35,10 @@ struct RuleRowView: View {
             }
 
             HStack(spacing: 6) {
-                if !rule.isActive {
-                    badge("Paused", color: .orange)
+                if isShielded {
+                    badge("Blocked", color: .red)
+                } else {
+                    badge("Unlocked", color: .green)
                 }
                 if !rule.challenges.isEmpty {
                     badge(rule.challenges[0].displayName, color: .blue)
@@ -47,14 +51,14 @@ struct RuleRowView: View {
 
     private var controls: some View {
         VStack(alignment: .trailing, spacing: 12) {
-            // Toggle = pause / unpause
+            // Toggle reflects live shield state; tapping triggers the
+            // challenge/confirmation flow, not a direct boolean flip.
             Toggle("", isOn: Binding(
-                get: { rule.isActive },
-                set: { _ in onToggleActive() }
+                get: { isShielded },
+                set: { _ in onToggleTap() }
             ))
             .labelsHidden()
 
-            // Options icon → delete flow
             Button { onOptions() } label: {
                 Image(systemName: "ellipsis.circle")
                     .foregroundColor(.secondary)

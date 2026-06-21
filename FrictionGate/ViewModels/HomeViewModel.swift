@@ -18,13 +18,20 @@ final class HomeViewModel: ObservableObject {
     /// Mirrors `ruleStore.rules` so Views only need to observe this ViewModel.
     @Published var rules: [Rule] = []
 
-    /// Set when the user initiates a pause on a rule.  The View presents a
-    /// `PauseRuleView` sheet bound to this value.
-    @Published var pendingPauseRule: Rule?
+    /// Which rule IDs currently have an active ManagedSettings shield.
+    /// Refreshed on every foreground and after every lock/unlock action.
+    @Published var shieldedRuleIDs: Set<UUID> = []
 
-    /// The exact 5-line text the user must type to confirm the pause.
-    /// Generated from `pendingPauseRule` by `startPause(for:)`.
-    @Published private(set) var pauseConfirmationText: String = ""
+    /// Set when the user taps a toggle to UNLOCK a blocked app.
+    /// HomeView presents UnlockView for this rule.
+    @Published var pendingUnlockFromToggle: Rule? = nil
+
+    /// Set when the user tries to RE-LOCK an app while a session is still active.
+    /// HomeView shows a confirmation alert.
+    @Published var pendingRelockRule: Rule? = nil
+
+    /// Human-friendly message for the re-lock confirmation alert.
+    @Published private(set) var relockMessage: String = ""
 
     // MARK: - Init
 
@@ -37,99 +44,130 @@ final class HomeViewModel: ObservableObject {
         self.blockingService = blockingService
         self.deviceActivityService = deviceActivityService
 
-        // Keep rules in sync with the store without duplicating state.
         ruleStore.$rules
             .assign(to: &$rules)
     }
 
     // MARK: - Rules management
 
-    /// Reloads rules from App Group UserDefaults.
     func refreshRules() {
         ruleStore.load()
     }
 
-    /// Deletes a rule, removing its shield and DeviceActivity schedules.
     func deleteRule(_ rule: Rule) {
         blockingService.removeShield(for: rule)
         deviceActivityService.removeSchedules(for: rule)
         ruleStore.delete(rule)
         ruleStore.resetAttempt(for: rule.id)
+        shieldedRuleIDs.remove(rule.id)
     }
 
-    /// Toggles `isActive` without a confirmation flow.
-    /// Use `startPause(for:)` when you want friction (the type-to-pause sheet).
-    func toggleActive(_ rule: Rule) {
-        var updated = rule
-        updated.isActive.toggle()
-        updated.isPaused = false
-        updated.pauseUntil = nil
-        ruleStore.update(updated)
+    // MARK: - Shield state
 
-        if updated.isActive {
-            deviceActivityService.registerSchedules(for: updated)
+    /// Reads the live ManagedSettings state for every rule and updates
+    /// `shieldedRuleIDs`.  Call on every app foreground and after actions.
+    func refreshShieldStates() {
+        let blocked = rules.filter { blockingService.isShielded($0) }.map(\.id)
+        shieldedRuleIDs = Set(blocked)
+    }
+
+    // MARK: - Toggle tap handler
+    //
+    // The toggle reflects WHETHER the app is currently blocked, not whether
+    // the rule is enabled.  Tapping it therefore means:
+    //   • currently blocked   → user wants to unlock  → challenge required
+    //   • currently unblocked → user wants to re-lock → immediate or confirmed
+
+    func handleToggleTap(for rule: Rule) {
+        if shieldedRuleIDs.contains(rule.id) {
+            // App is blocked → present unlock challenge
+            pendingUnlockFromToggle = rule
         } else {
-            deviceActivityService.removeSchedules(for: updated)
-            blockingService.removeShield(for: updated)
+            // App is unblocked → user wants to lock it
+            if let remaining = remainingSessionMinutes(for: rule.id) {
+                // A session is still active — show friendly confirmation
+                relockMessage = buildRelockMessage(rule: rule, remainingMinutes: remaining)
+                pendingRelockRule = rule
+            } else {
+                // No active session → re-apply shield immediately
+                applyRelockNow(rule)
+            }
         }
     }
 
-    // MARK: - Pause flow (type-to-confirm, architecture doc §9)
-
-    /// Begins the pause flow.  Populates `pauseConfirmationText` and sets
-    /// `pendingPauseRule` so the View can present the confirmation sheet.
-    func startPause(for rule: Rule) {
-        pendingPauseRule = rule
-        pauseConfirmationText = generatePauseText(for: rule)
+    /// Called after the user confirms early re-lock via the alert.
+    func confirmRelock() {
+        guard let rule = pendingRelockRule else { return }
+        applyRelockNow(rule)
+        pendingRelockRule = nil
     }
 
-    /// Applies the pause after the user has typed the confirmation text exactly.
-    ///
-    /// - Parameter duration: How long to pause the rule (default: 30 minutes).
-    func confirmPause(for rule: Rule, duration: TimeInterval = 30 * 60) {
-        var updated = rule
-        updated.isPaused = true
-        updated.pauseUntil = Date().addingTimeInterval(duration)
-        ruleStore.update(updated)
-        blockingService.removeShield(for: updated)
-        deviceActivityService.removeSchedules(for: updated)
-        cancelPause()
+    func cancelRelock() {
+        pendingRelockRule = nil
     }
 
-    /// Cancels the pending pause flow without making any changes.
-    func cancelPause() {
-        pendingPauseRule = nil
-        pauseConfirmationText = ""
+    /// Called by HomeView after UnlockView dismisses so the toggle updates.
+    func didDismissUnlock() {
+        pendingUnlockFromToggle = nil
+        refreshShieldStates()
     }
 
-    // MARK: - Pause text (architecture doc §9)
+    // MARK: - Private helpers
 
-    /// Generates the 5-line type-to-pause text for a given rule.
-    ///
-    /// The text is deterministic for a rule, so it can be pre-generated and
-    /// displayed to the user before they start typing.
-    func generatePauseText(for rule: Rule) -> String {
-        let app  = rule.appDisplayName
-        let cond = rule.conditions.first?.pauseDescription ?? "this time of day"
-        return [
-            "I am choosing to pause my \(app) block right now.",
-            "This rule exists because I decided I use \(app) too much during \(cond).",
-            "Pausing it is a conscious choice, not a mindless one.",
-            "I take full responsibility for how I use this time.",
-            "I will re-enable this rule when I am done.",
-        ].joined(separator: "\n")
+    private func applyRelockNow(_ rule: Rule) {
+        // Clear any active session so the shield sticks.
+        UserDefaults(suiteName: "group.com.debrajpal.frictiongate")?
+            .removeObject(forKey: "session_expires_\(rule.id.uuidString)")
+        deviceActivityService.cancelSessionRelock(for: rule.id)
+
+        blockingService.applyShield(for: rule)
+        shieldedRuleIDs.insert(rule.id)
+    }
+
+    private func remainingSessionMinutes(for ruleID: UUID) -> Int? {
+        guard let defaults = UserDefaults(suiteName: "group.com.debrajpal.frictiongate")
+        else { return nil }
+        let expiryTS = defaults.double(forKey: "session_expires_\(ruleID.uuidString)")
+        guard expiryTS > 0 else { return nil }
+        let remaining = expiryTS - Date().timeIntervalSince1970
+        guard remaining > 0 else { return nil }
+        return max(1, Int(ceil(remaining / 60)))
+    }
+
+    private func buildRelockMessage(rule: Rule, remainingMinutes: Int) -> String {
+        let app = rule.appDisplayName.isEmpty ? "This app" : rule.appDisplayName
+        let timer = remainingMinutes == 1
+            ? "about a minute"
+            : "about \(remainingMinutes) minutes"
+        let challenges = challengeSummary(for: rule)
+        return "\(app) will lock itself automatically in \(timer). " +
+               "If you lock it now, you'll need to \(challenges) to get back in, and the timer will reset."
+    }
+
+    private func challengeSummary(for rule: Rule) -> String {
+        let parts = rule.challenges.map { challenge -> String in
+            switch challenge {
+            case .steps(let n):     return "walk \(n) steps"
+            case .maths(let c):     return "solve \(c) maths \(c == 1 ? "problem" : "problems")"
+            case .typeSentence:     return "type out a sentence"
+            case .wait(let m):      return "wait \(m) \(m == 1 ? "minute" : "minutes")"
+            case .writeReason:      return "write out why you want to use it"
+            }
+        }
+        switch parts.count {
+        case 0:  return "complete a challenge"
+        case 1:  return parts[0]
+        case 2:  return "\(parts[0]) and \(parts[1])"
+        default:
+            return parts.dropLast().joined(separator: ", ") + ", and \(parts.last!)"
+        }
     }
 }
 
 // MARK: - BlockCondition display helpers
-//
-// Defined here so both HomeViewModel and RuleBuilderViewModel (same module) can
-// use them without an extra file.  Pure Swift — no UIKit or SwiftUI imports needed.
 
 extension BlockCondition {
 
-    /// A concise human-readable description of when this condition is active.
-    /// Used in the rule review summary and the pause confirmation text.
     var displayDescription: String {
         switch self {
         case .timeWindow(let start, let end, let days):
@@ -143,7 +181,6 @@ extension BlockCondition {
         }
     }
 
-    /// Variant phrased for mid-sentence use in the pause confirmation text.
     var pauseDescription: String {
         switch self {
         case .timeWindow(let start, let end, let days):
@@ -157,8 +194,6 @@ extension BlockCondition {
         }
     }
 }
-
-// Free helpers — file-private so they don't pollute the module namespace.
 
 private func blockTimeLabel(_ dc: DateComponents) -> String {
     let h = dc.hour ?? 0

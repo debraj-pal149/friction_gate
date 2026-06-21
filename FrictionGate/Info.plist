@@ -3,11 +3,11 @@
 <plist version="1.0">
 <dict>
 	<key>NSMotionUsageDescription</key>
-	<string>FrictionGate uses motion data as a fallback step counter.</string>
+	<string>Friction uses motion data as a fallback step counter.</string>
 	<key>NSHealthUpdateUsageDescription</key>
-	<string> FrictionGate does not write health data.</string>
+	<string>Friction does not write health data.</string>
 	<key>NSHealthShareUsageDescription</key>
-	<string>FrictionGate reads your step count to verify unlock challenges.</string>
+	<string>Friction reads your step count to verify unlock challenges.</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleIdentifier</key>

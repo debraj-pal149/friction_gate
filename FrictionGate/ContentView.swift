@@ -18,6 +18,8 @@ struct ContentView: View {
         HomeView(vm: homeVM, ruleStore: ruleStore)
             .fullScreenCover(item: $appState.pendingUnlockRule) { rule in
                 UnlockView(rule: rule, ruleStore: ruleStore)
+                    // Keep the home-screen toggles in sync after a shield-initiated unlock.
+                    .onDisappear { homeVM.refreshShieldStates() }
             }
             // Show the permission primer exactly once, before the system dialog.
             .fullScreenCover(isPresented: shouldShowPrimer) {

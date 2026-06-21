@@ -1,33 +1,15 @@
 import SwiftUI
 import FamilyControls
+import UserNotifications
 
 // MARK: - AppState
 
 /// App-level navigation state shared between `FrictionGateApp` and `ContentView`.
-///
-/// `pendingUnlockRule` is set from two sources:
-///  1. The `frictiongate://unlock?ruleID=xyz` URL scheme (deep link).
-///  2. The `pending_unlock_rule_id` key written to the App Group `UserDefaults`
-///     by the `ShieldActionExtension` when the user taps "Request Unlock" on the
-///     shield overlay.
-///
-/// `ContentView` observes this and presents `UnlockView` via `.fullScreenCover`.
-/// `UnlockViewModel.completeAllChallenges()` clears the UserDefaults key once the
-/// user finishes the challenge; the binding is cleared when the cover is dismissed.
 @MainActor
 final class AppState: ObservableObject {
     @Published var pendingUnlockRule: Rule? = nil
-
-    /// Current Family Controls authorization status.
-    /// Updated on every app foreground so UI can react without a restart.
     @Published var familyControlsStatus: AuthorizationStatus = .notDetermined
-
-    /// Human-readable description of the last `requestAuthorization` error,
-    /// if any.  Nil when authorization succeeded or has not been attempted.
     @Published var familyControlsError: String? = nil
-
-    /// Whether the pre-permission primer has been shown to the user.
-    /// Persisted so the primer is never shown more than once.
     @Published var hasShownPermissionPrimer: Bool = {
         UserDefaults.standard.bool(forKey: "friction_permission_primer_shown")
     }()
@@ -38,12 +20,49 @@ final class AppState: ObservableObject {
     }
 }
 
+// MARK: - NotificationDelegate
+
+/// Handles local notification taps from the shield extension.
+///
+/// Two notification types:
+///  - FRICTION_UNLOCK  (from ShieldActionExtension) → show unlock challenge
+///  - FRICTION_RELOCK  (from DeviceActivityService)  → silently re-apply shield
+@MainActor
+final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
+
+    var onUnlockRequest: ((String) -> Void)?
+    var onRelockRequest: ((String) -> Void)?
+
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
+        let info     = response.notification.request.content.userInfo
+        let category = response.notification.request.content.categoryIdentifier
+        if let ruleID = info["ruleID"] as? String {
+            if category == "FRICTION_RELOCK" {
+                onRelockRequest?(ruleID)
+            } else {
+                onUnlockRequest?(ruleID)
+            }
+        }
+        completionHandler()
+    }
+
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        completionHandler([.banner, .sound])
+    }
+}
+
 // MARK: - FrictionGateApp
 
 @main
 struct FrictionGateApp: App {
-
-    // MARK: - Shared services (single instance for full app lifetime)
 
     @StateObject private var ruleStore:      RuleStore
     @StateObject private var wakeUpDetector: WakeUpDetector
@@ -52,6 +71,9 @@ struct FrictionGateApp: App {
     @StateObject private var appState:       AppState
 
     @Environment(\.scenePhase) private var scenePhase
+
+    // Notification delegate must be kept alive for the app lifetime.
+    private let notificationDelegate = NotificationDelegate()
 
     // MARK: - Init
 
@@ -68,6 +90,10 @@ struct FrictionGateApp: App {
             wakeUpDetector: detector,
             ruleStore: store
         ))
+
+        // Register as the notification delegate immediately so we receive
+        // taps even if the app was launched cold by a notification.
+        UNUserNotificationCenter.current().delegate = notificationDelegate
     }
 
     // MARK: - Scene
@@ -79,10 +105,11 @@ struct FrictionGateApp: App {
                 .environmentObject(ruleStore)
                 .environmentObject(homeVM)
                 .environmentObject(wakeUpVM)
-                // HealthKit auth runs once on first render.
-                // FamilyControls auth is handled by PermissionPrimerView on first launch;
-                // subsequent launches just read the current status.
-                .task { await requestHealthKitAuthorization() }
+                .task {
+                    await requestHealthKitAuthorization()
+                    await requestNotificationPermission()
+                    wireNotificationDelegate()
+                }
                 .onOpenURL { handleURL($0) }
         }
         .onChange(of: scenePhase) { phase in
@@ -91,6 +118,55 @@ struct FrictionGateApp: App {
             checkPendingUnlockFromExtension()
             refreshFamilyControlsStatus()
             reapplyShieldsForExpiredSessions()
+            homeVM.refreshShieldStates()
+        }
+    }
+
+    // MARK: - Notification setup
+
+    private func requestNotificationPermission() async {
+        try? await UNUserNotificationCenter.current()
+            .requestAuthorization(options: [.alert, .sound])
+
+        // Register both notification categories.
+        let unlockCategory = UNNotificationCategory(
+            identifier: "FRICTION_UNLOCK",
+            actions: [],
+            intentIdentifiers: [],
+            options: [.customDismissAction]
+        )
+        let relockCategory = UNNotificationCategory(
+            identifier: "FRICTION_RELOCK",
+            actions: [],
+            intentIdentifiers: [],
+            options: [.customDismissAction]
+        )
+        UNUserNotificationCenter.current()
+            .setNotificationCategories([unlockCategory, relockCategory])
+    }
+
+    private func wireNotificationDelegate() {
+        // Unlock notification: user tapped "Switch to Friction" on the shield.
+        notificationDelegate.onUnlockRequest = { [self] ruleID in
+            guard
+                let uuid = UUID(uuidString: ruleID),
+                let rule = ruleStore.rules.first(where: { $0.id == uuid })
+            else { return }
+            appState.pendingUnlockRule = rule
+        }
+
+        // Relock notification: session expired, user wants to re-block now.
+        notificationDelegate.onRelockRequest = { [self] ruleID in
+            guard
+                let uuid = UUID(uuidString: ruleID),
+                let rule = ruleStore.rules.first(where: { $0.id == uuid })
+            else { return }
+            // Clear the session and apply the shield — no challenge needed
+            // since the user is voluntarily re-locking.
+            UserDefaults(suiteName: "group.com.debrajpal.frictiongate")?
+                .removeObject(forKey: "session_expires_\(ruleID)")
+            BlockingService.shared.applyShield(for: rule)
+            homeVM.refreshShieldStates()
         }
     }
 
@@ -109,29 +185,40 @@ struct FrictionGateApp: App {
         appState.pendingUnlockRule = rule
     }
 
-    // MARK: - Shield extension handoff
+    // MARK: - Shield extension handoff (foreground poll)
 
     private func checkPendingUnlockFromExtension() {
         guard appState.pendingUnlockRule == nil else { return }
+        guard let defaults = UserDefaults(suiteName: "group.com.debrajpal.frictiongate")
+        else { return }
+
+        // Always clear the keys immediately — even if we don't act on them.
+        // This prevents the unlock screen from re-appearing on every subsequent
+        // foreground if the user cancelled or the request was stale.
+        defer {
+            defaults.removeObject(forKey: "pending_unlock_rule_id")
+            defaults.removeObject(forKey: "pending_unlock_timestamp")
+        }
 
         guard
-            let defaults = UserDefaults(suiteName: "group.com.debrajpal.frictiongate"),
             let idString = defaults.string(forKey: "pending_unlock_rule_id"),
             let ruleID   = UUID(uuidString: idString),
             let rule     = ruleStore.rules.first(where: { $0.id == ruleID })
         else { return }
+
+        // Ignore requests older than 2 minutes — the user tapped the shield
+        // a long time ago and the context is no longer relevant.
+        let timestamp = defaults.double(forKey: "pending_unlock_timestamp")
+        if timestamp > 0 {
+            let age = Date().timeIntervalSince1970 - timestamp
+            guard age < 120 else { return }   // 2-minute freshness window
+        }
 
         appState.pendingUnlockRule = rule
     }
 
     // MARK: - Session expiry re-evaluation
 
-    /// For each active rule, checks whether the user's unlock session has expired.
-    /// If it has, re-applies the shield so the next open of the blocked app shows
-    /// the unlock challenge again.
-    ///
-    /// Called every time the app foregrounds — this is the primary mechanism for
-    /// Option C (configurable session duration) re-blocking.
     private func reapplyShieldsForExpiredSessions() {
         guard let defaults = UserDefaults(suiteName: "group.com.debrajpal.frictiongate")
         else { return }
@@ -142,8 +229,6 @@ struct FrictionGateApp: App {
             let key = "session_expires_\(rule.id.uuidString)"
             let expiryTS = defaults.double(forKey: key)
 
-            // No session key → no active session → evaluate normally.
-            // Session expired → clear the key and re-apply shield if condition active.
             if expiryTS > 0 {
                 if now.timeIntervalSince1970 > expiryTS {
                     defaults.removeObject(forKey: key)
@@ -151,9 +236,7 @@ struct FrictionGateApp: App {
                         for: rule, wakeUpDetector: wakeUpDetector
                     )
                 }
-                // If session is still active, do nothing — user still has access.
             } else {
-                // No active session — ensure shield is in sync with condition.
                 BlockingService.shared.evaluateAndApplyShield(
                     for: rule, wakeUpDetector: wakeUpDetector
                 )
@@ -163,17 +246,10 @@ struct FrictionGateApp: App {
 
     // MARK: - Authorizations
 
-    /// Requests HealthKit permission.
-    ///
-    /// FamilyControls authorization is handled by `PermissionPrimerView` on first
-    /// launch so the user sees a clear explanation before the system dialog appears.
-    /// After the primer runs once, `refreshFamilyControlsStatus()` keeps the status
-    /// current on every foreground.
     private func requestHealthKitAuthorization() async {
         try? await HealthKitService.shared.requestAuthorization()
     }
 
-    /// Syncs `appState.familyControlsStatus` with the live system value.
     private func refreshFamilyControlsStatus() {
         appState.familyControlsStatus = AuthorizationCenter.shared.authorizationStatus
     }
