@@ -93,6 +93,22 @@ struct FrictionGateApp: App {
 
         UNUserNotificationCenter.current().delegate = notificationDelegate
         FrictionGateApp.configureGlobalAppearance()
+        FrictionGateApp.configureURLCache()
+    }
+
+    // MARK: - URLCache limits
+    //
+    // AsyncImage uses URLSession.shared → URLCache.shared.
+    // Without a cap this grows to iOS's default of 4 MB in-memory / 512 MB on disk,
+    // contributing directly to the app being killed under memory pressure.
+    // Small app icons don't need more than 2 MB in-memory cache.
+
+    private static func configureURLCache() {
+        URLCache.shared = URLCache(
+            memoryCapacity:  2 * 1024 * 1024,   // 2 MB in-memory
+            diskCapacity:   20 * 1024 * 1024,   // 20 MB on disk
+            diskPath:       "friction_icon_cache"
+        )
     }
 
     // MARK: - Global UIKit appearance (Ink + Bone + Prussian Blue)

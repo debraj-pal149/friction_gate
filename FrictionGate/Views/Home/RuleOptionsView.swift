@@ -11,14 +11,7 @@ struct RuleOptionsView: View {
     @State private var showDeleteConfirmation = false
     @State private var typedText = ""
 
-    private var deletePhrase: String {
-        let name = rule.appDisplayName
-            .trimmingCharacters(in: .whitespaces)
-        let isPlaceholder = name.isEmpty || name.lowercased() == "selected app"
-        return isPlaceholder
-            ? "I want to permanently delete this rule"
-            : "I want to permanently delete \(name.lowercased())"
-    }
+    private let deletePhrase = "I want to permanently delete this rule"
 
     private var canDelete: Bool {
         let typed  = typedText.trimmingCharacters(in: .whitespaces).lowercased()

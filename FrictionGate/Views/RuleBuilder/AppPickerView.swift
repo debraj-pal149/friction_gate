@@ -60,16 +60,10 @@ struct AppPickerView: View {
                         bundleID: vm.appBundleID, size: 44)
 
             VStack(alignment: .leading, spacing: 2) {
-                if vm.appDisplayName.isEmpty {
-                    TextField("App name (e.g. Instagram)", text: $vm.appDisplayName)
-                        .font(.headline)
-                        .foregroundStyle(Color.appPrimary)
-                        .submitLabel(.done)
-                } else {
-                    Text(vm.appDisplayName)
-                        .font(.headline)
-                        .foregroundStyle(Color.appPrimary)
-                }
+                TextField("App name (e.g. Instagram)", text: $vm.appDisplayName)
+                    .font(.headline)
+                    .foregroundStyle(Color.appPrimary)
+                    .submitLabel(.done)
                 Text(vm.appDisplayName.isEmpty
                      ? "Type the app name above, then tap Next"
                      : "Tap Next to set blocking conditions")

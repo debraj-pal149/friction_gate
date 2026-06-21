@@ -78,7 +78,8 @@ struct AppIconView: View {
                 let json    = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                 let results = json["results"] as? [[String: Any]],
                 let first   = results.first,
-                let urlStr  = first["artworkUrl100"] as? String,
+                // artworkUrl60 is 60×60 — decoded footprint is ~4× smaller than 100×100
+                let urlStr  = first["artworkUrl60"] as? String,
                 let url     = URL(string: urlStr)
             else { return }
 
@@ -95,12 +96,30 @@ struct AppIconView: View {
 /// Lightweight in-process cache so each bundle ID is looked up at most once
 /// per app session. Keeps NSString/NSURL to leverage NSCache's automatic
 /// memory-pressure eviction.
+///
+/// The cache also registers for `UIApplication.didReceiveMemoryWarningNotification`
+/// and purges itself entirely, since icon URLs are cheap to re-fetch.
 private final class IconURLCache {
     static let shared = IconURLCache()
     private let cache = NSCache<NSString, NSURL>()
 
     private init() {
-        cache.countLimit = 100   // Evict after 100 entries if needed.
+        cache.countLimit   = 150
+        // Each NSURL object is ~200 bytes; 150 × 200 = ~30 KB ceiling.
+        // The real memory cost is the decoded images inside URLCache.shared,
+        // which is now bounded separately in FrictionGateApp.
+        cache.totalCostLimit = 30_000
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(purge),
+            name: UIApplication.didReceiveMemoryWarningNotification,
+            object: nil
+        )
+    }
+
+    @objc private func purge() {
+        cache.removeAllObjects()
     }
 
     func url(for bundleID: String) -> URL? {
@@ -108,6 +127,8 @@ private final class IconURLCache {
     }
 
     func store(_ url: URL, for bundleID: String) {
-        cache.setObject(url as NSURL, forKey: bundleID as NSString)
+        // Cost ≈ byte size of the URL string — small but gives NSCache accurate info.
+        let cost = url.absoluteString.utf8.count
+        cache.setObject(url as NSURL, forKey: bundleID as NSString, cost: cost)
     }
 }
