@@ -91,9 +91,35 @@ struct FrictionGateApp: App {
             ruleStore: store
         ))
 
-        // Register as the notification delegate immediately so we receive
-        // taps even if the app was launched cold by a notification.
         UNUserNotificationCenter.current().delegate = notificationDelegate
+        FrictionGateApp.configureGlobalAppearance()
+    }
+
+    // MARK: - Global UIKit appearance (Ink + Bone + Prussian Blue)
+    //
+    // Called once at launch. Styles all NavigationBars and List backgrounds
+    // consistently across every screen without per-view boilerplate.
+    // To change the accent color update Color.appAccent in Color+Theme.swift.
+
+    private static func configureGlobalAppearance() {
+        let nav = UINavigationBarAppearance()
+        nav.configureWithDefaultBackground()              // system blur — content bleeds through
+        nav.backgroundColor = UIColor(white: 1.0, alpha: 0.84)  // translucent white glass
+        nav.shadowColor     = UIColor(white: 0, alpha: 0.06)     // subtle dark hairline
+        nav.largeTitleTextAttributes = [
+            .foregroundColor: UIColor(themeHex: "0D0D14"),
+            .font: UIFont.systemFont(ofSize: 28, weight: .bold)
+        ]
+        nav.titleTextAttributes = [
+            .foregroundColor: UIColor(themeHex: "0D0D14"),
+            .font: UIFont.systemFont(ofSize: 17, weight: .semibold)
+        ]
+        UINavigationBar.appearance().standardAppearance    = nav
+        UINavigationBar.appearance().scrollEdgeAppearance  = nav
+        UINavigationBar.appearance().compactAppearance     = nav
+        UINavigationBar.appearance().tintColor             = UIColor(themeHex: "1040E8")
+
+        UITableView.appearance().backgroundColor = UIColor(themeHex: "F4F4F8")
     }
 
     // MARK: - Scene

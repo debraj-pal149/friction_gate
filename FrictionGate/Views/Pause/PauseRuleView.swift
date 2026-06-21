@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// Duration options the user can choose when pausing a rule.
+// MARK: - Pause duration options
+
 enum PauseDuration: String, CaseIterable, Identifiable {
     case thirtyMinutes  = "30 minutes"
     case oneHour        = "1 hour"
@@ -25,6 +26,8 @@ enum PauseDuration: String, CaseIterable, Identifiable {
     }
 }
 
+// MARK: - View
+
 struct PauseRuleView: View {
 
     let rule: Rule
@@ -32,7 +35,7 @@ struct PauseRuleView: View {
     let onConfirm: (TimeInterval) -> Void
     let onCancel: () -> Void
 
-    @State private var typedText:    String = ""
+    @State private var typedText:         String = ""
     @State private var selectedDuration: PauseDuration = .thirtyMinutes
     @Environment(\.dismiss) private var dismiss
 
@@ -41,21 +44,22 @@ struct PauseRuleView: View {
     var body: some View {
         NavigationStack {
             List {
-                // The text the user must type
                 Section {
                     Text(confirmationText)
                         .font(.body)
                         .lineSpacing(5)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(Color.appSecondary)
                         .padding(.vertical, 4)
                 } header: {
                     Label("Type this to confirm", systemImage: "exclamationmark.triangle.fill")
-                        .foregroundColor(.orange)
+                        .foregroundStyle(Color.appWarning)
                 } footer: {
                     Text("Copy & paste is disabled. Type every word exactly as shown.")
+                        .foregroundStyle(Color.appTertiary)
                 }
+                .surfaceRow()
+                .listRowSeparatorTint(Color.appBorder)
 
-                // Paste-blocking input
                 Section {
                     VStack(alignment: .leading, spacing: 8) {
                         PasteBlockingTextField(
@@ -64,20 +68,21 @@ struct PauseRuleView: View {
                             font: .systemFont(ofSize: 15)
                         )
                         .frame(height: 44)
+                        .foregroundStyle(Color.appPrimary)
 
-                        // Live colour bar showing match progress
                         matchProgressBar
                     }
                 } header: {
-                    Text("Your Input")
+                    Text("Your Input").foregroundStyle(Color.appSecondary)
                 } footer: {
                     if !typedText.isEmpty && !exactMatch {
                         Text("Keep typing to match exactly.")
-                            .foregroundColor(.orange)
+                            .foregroundStyle(Color.appWarning)
                     }
                 }
+                .surfaceRow()
+                .listRowSeparatorTint(Color.appBorder)
 
-                // Duration picker
                 Section("Pause duration") {
                     Picker("Duration", selection: $selectedDuration) {
                         ForEach(PauseDuration.allCases) { dur in
@@ -86,9 +91,11 @@ struct PauseRuleView: View {
                     }
                     .pickerStyle(.inline)
                     .labelsHidden()
+                    .foregroundStyle(Color.appPrimary)
                 }
+                .surfaceRow()
+                .listRowSeparatorTint(Color.appBorder)
 
-                // Confirm button
                 Section {
                     Button {
                         onConfirm(selectedDuration.timeInterval)
@@ -101,11 +108,13 @@ struct PauseRuleView: View {
                             Spacer()
                         }
                     }
-                    .foregroundColor(.white)
-                    .listRowBackground(exactMatch ? Color.orange : Color(.systemFill))
+                    .foregroundStyle(exactMatch ? Color.appOnAccent : Color.appTertiary)
+                    .listRowBackground(exactMatch ? Color.appAccent : Color.appSurface2)
                     .disabled(!exactMatch)
                 }
+                .listRowSeparatorTint(Color.clear)
             }
+            .inkBackground()
             .listStyle(.insetGrouped)
             .navigationTitle("Pause \(rule.appDisplayName)?")
             .navigationBarTitleDisplayMode(.inline)
@@ -115,6 +124,7 @@ struct PauseRuleView: View {
                         onCancel()
                         dismiss()
                     }
+                    .foregroundStyle(Color.appAccent)
                 }
             }
         }
@@ -123,27 +133,25 @@ struct PauseRuleView: View {
     // MARK: - Match progress bar
 
     private var matchProgressBar: some View {
-        let required = confirmationText
-        let typed    = typedText
-        let ratio    = required.isEmpty ? 0.0 :
-            min(1.0, Double(typed.count) / Double(required.count))
+        let ratio = confirmationText.isEmpty ? 0.0 :
+            min(1.0, Double(typedText.count) / Double(confirmationText.count))
 
         return VStack(alignment: .leading, spacing: 3) {
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 4)
-                        .fill(Color(.systemFill))
+                        .fill(Color.appSurface2)
                     RoundedRectangle(cornerRadius: 4)
-                        .fill(exactMatch ? Color.green : Color.blue)
+                        .fill(exactMatch ? Color.appSuccess : Color.appAccent)
                         .frame(width: geo.size.width * ratio)
                         .animation(.easeInOut(duration: 0.2), value: ratio)
                 }
             }
             .frame(height: 6)
 
-            Text(exactMatch ? "Perfect match ✓" : "\(typed.count) / \(required.count) characters")
+            Text(exactMatch ? "Perfect match ✓" : "\(typedText.count) / \(confirmationText.count) characters")
                 .font(.caption2)
-                .foregroundColor(exactMatch ? .green : .secondary)
+                .foregroundStyle(exactMatch ? Color.appSuccess : Color.appSecondary)
         }
     }
 }

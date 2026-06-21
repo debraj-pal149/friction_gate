@@ -13,28 +13,32 @@ struct StepChallengeView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 32) {
-                Spacer(minLength: 20)
+                Spacer(minLength: 24)
 
-                // Goal ring
                 ZStack {
                     Circle()
-                        .stroke(Color(.systemFill), lineWidth: 16)
+                        .stroke(Color.appSurface2, lineWidth: 16)
                     Circle()
                         .trim(from: 0, to: progress)
                         .stroke(
-                            progress >= 1 ? Color.green : Color.blue,
+                            progress >= 1 ? Color.appSuccess : Color.appAccent,
                             style: StrokeStyle(lineWidth: 16, lineCap: .round)
                         )
                         .rotationEffect(.degrees(-90))
                         .animation(.easeInOut(duration: 0.4), value: progress)
+                        .shadow(
+                            color: (progress >= 1 ? Color.appSuccess : Color.appAccent).opacity(0.5),
+                            radius: 12, x: 0, y: 0
+                        )
 
                     VStack(spacing: 4) {
                         Text("\(vm.stepsFromStart)")
                             .font(.system(size: 42, weight: .bold, design: .rounded))
                             .monospacedDigit()
+                            .foregroundStyle(Color.appPrimary)
                         Text("of \(required)")
                             .font(.subheadline)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(Color.appSecondary)
                     }
                 }
                 .frame(width: 200, height: 200)
@@ -42,22 +46,23 @@ struct StepChallengeView: View {
                 VStack(spacing: 8) {
                     Text("Walk \(required) steps to unlock")
                         .font(.headline)
+                        .foregroundStyle(Color.appPrimary)
                     Text("Steps are counted from when you requested the unlock.")
                         .font(.footnote)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(Color.appSecondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
                 }
 
-                // Today's total
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Steps today")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(Color.appSecondary)
                         Text("\(vm.stepsSinceMidnight)")
                             .font(.title3.bold())
                             .monospacedDigit()
+                            .foregroundStyle(Color.appPrimary)
                     }
                     Spacer()
                     Button {
@@ -69,13 +74,13 @@ struct StepChallengeView: View {
                     .buttonStyle(.bordered)
                 }
                 .padding()
-                .background(Color(.secondarySystemGroupedBackground))
-                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .glassCard(cornerRadius: 14)
                 .padding(.horizontal)
 
                 Spacer()
             }
             .padding()
         }
+        .background(Color.appBackground)
     }
 }

@@ -1,7 +1,6 @@
 import SwiftUI
 
 /// Root container for the 5-step rule creation flow.
-/// Presented as a full-screen sheet from `HomeView`.
 struct RuleBuilderView: View {
 
     @StateObject private var vm: RuleBuilderViewModel
@@ -16,8 +15,8 @@ struct RuleBuilderView: View {
             VStack(spacing: 0) {
                 stepIndicator
                 Divider()
+                    .background(Color.appBorder)
 
-                // Step content
                 Group {
                     switch vm.currentStep {
                     case .appPicker:
@@ -45,9 +44,10 @@ struct RuleBuilderView: View {
                             vm.reset()
                             dismiss()
                         }
-                        .foregroundColor(.red)
+                        .foregroundStyle(Color.appDestructive)
                     } else {
                         Button("Back") { vm.previousStep() }
+                            .foregroundStyle(Color.appAccent)
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
@@ -55,6 +55,7 @@ struct RuleBuilderView: View {
                         Button("Next") { vm.nextStep() }
                             .disabled(!vm.canAdvance)
                             .bold()
+                            .foregroundStyle(vm.canAdvance ? Color.appAccent : Color.appTertiary)
                     }
                 }
             }
@@ -69,13 +70,16 @@ struct RuleBuilderView: View {
                 stepDot(step)
                 if step != .review {
                     Rectangle()
-                        .fill(step.rawValue < vm.currentStep.rawValue ? Color.blue : Color(.systemFill))
+                        .fill(step.rawValue < vm.currentStep.rawValue
+                              ? Color.appAccent
+                              : Color.appSurface2)
                         .frame(height: 2)
                 }
             }
         }
         .padding(.horizontal, 20)
-        .padding(.vertical, 12)
+        .padding(.vertical, 14)
+        .background(Color.appBackground)
     }
 
     private func stepDot(_ step: BuilderStep) -> some View {
@@ -84,16 +88,30 @@ struct RuleBuilderView: View {
 
         return ZStack {
             Circle()
-                .fill(isCompleted ? Color.blue : (isActive ? Color.blue : Color(.systemFill)))
-                .frame(width: 26, height: 26)
+                .fill(isCompleted
+                      ? Color.appAccent
+                      : (isActive ? Color.appAccent : Color.appSurface2))
+                .frame(width: 28, height: 28)
+                .overlay(
+                    Circle()
+                        .stroke(isActive && !isCompleted
+                                ? Color.appAccent.opacity(0.3) : Color.clear,
+                                lineWidth: 2)
+                        .frame(width: 34, height: 34)
+                )
+                .shadow(
+                    color: (isActive || isCompleted) ? Color.appAccent.opacity(0.45) : Color.clear,
+                    radius: isActive ? 8 : 4, x: 0, y: 0
+                )
+
             if isCompleted {
                 Image(systemName: "checkmark")
                     .font(.caption2.bold())
-                    .foregroundColor(.white)
+                    .foregroundStyle(Color.appOnAccent)
             } else {
                 Text("\(step.rawValue + 1)")
                     .font(.caption2.bold())
-                    .foregroundColor(isActive ? .white : .secondary)
+                    .foregroundStyle(isActive ? Color.appOnAccent : Color.appTertiary)
             }
         }
     }

@@ -1,7 +1,5 @@
 import SwiftUI
 
-/// Dispatcher that creates an `UnlockViewModel` for the given rule and shows
-/// the appropriate challenge sub-view.  Presented as a `.sheet`.
 struct UnlockView: View {
 
     @StateObject private var vm: UnlockViewModel
@@ -13,48 +11,36 @@ struct UnlockView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                // Escalation banner
-                if vm.isEscalating {
-                    escalationBanner
-                }
+            ZStack {
+                Color.appBackground.ignoresSafeArea()
 
-                // Progress bar (when more than one challenge)
-                if vm.totalChallenges > 1 {
-                    VStack(spacing: 4) {
-                        ProgressView(
-                            value: Double(vm.currentChallengeIndex),
-                            total: Double(vm.totalChallenges)
-                        )
-                        .tint(.blue)
-                        .padding(.horizontal)
-
-                        Text("Challenge \(vm.currentChallengeIndex + 1) of \(vm.totalChallenges)")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                VStack(spacing: 0) {
+                    if vm.isEscalating {
+                        escalationBanner
                     }
-                    .padding(.vertical, 10)
-                    Divider()
-                }
 
-                // Challenge content
-                Group {
-                    if vm.isUnlocked {
-                        unlockSuccessView
-                    } else {
-                        switch vm.currentChallenge {
-                        case .steps(let required):
-                            StepChallengeView(vm: vm, required: required)
-                        case .maths:
-                            MathsChallengeView(vm: vm)
-                        case .typeSentence:
-                            TypeSentenceView(vm: vm)
-                        case .wait:
-                            WaitChallengeView(vm: vm)
-                        case .writeReason:
-                            WriteReasonView(vm: vm)
-                        case nil:
+                    if vm.totalChallenges > 1 {
+                        progressSection
+                    }
+
+                    Group {
+                        if vm.isUnlocked {
                             unlockSuccessView
+                        } else {
+                            switch vm.currentChallenge {
+                            case .steps(let required):
+                                StepChallengeView(vm: vm, required: required)
+                            case .maths:
+                                MathsChallengeView(vm: vm)
+                            case .typeSentence:
+                                TypeSentenceView(vm: vm)
+                            case .wait:
+                                WaitChallengeView(vm: vm)
+                            case .writeReason:
+                                WriteReasonView(vm: vm)
+                            case nil:
+                                unlockSuccessView
+                            }
                         }
                     }
                 }
@@ -68,7 +54,7 @@ struct UnlockView: View {
                             vm.abandon()
                             dismiss()
                         }
-                        .foregroundColor(.red)
+                        .foregroundStyle(Color.appDestructive)
                     }
                 }
             }
@@ -83,30 +69,68 @@ struct UnlockView: View {
         .onDisappear { vm.abandon() }
     }
 
-    // MARK: - Shared subviews
+    // MARK: - Escalation banner
 
     private var escalationBanner: some View {
         HStack(spacing: 8) {
             Image(systemName: "flame.fill")
+                .font(.subheadline)
             Text("Escalation active · \(vm.currentMultiplier)× harder")
                 .font(.subheadline.bold())
         }
-        .foregroundColor(.white)
+        .foregroundStyle(Color.appPrimary)
         .frame(maxWidth: .infinity)
         .padding(.vertical, 10)
-        .background(Color.orange)
+        .background(Color.appWarning.opacity(0.85))
     }
 
+    // MARK: - Multi-challenge progress
+
+    @ViewBuilder
+    private var progressSection: some View {
+        VStack(spacing: 6) {
+            ProgressView(
+                value: Double(vm.currentChallengeIndex),
+                total: Double(vm.totalChallenges)
+            )
+            .tint(Color.appAccent)
+            .padding(.horizontal)
+
+            Text("Challenge \(vm.currentChallengeIndex + 1) of \(vm.totalChallenges)")
+                .font(.caption)
+                .foregroundStyle(Color.appSecondary)
+        }
+        .padding(.vertical, 12)
+        .background(Color.appSurface)
+
+        Divider().background(Color.appBorder)
+    }
+
+    // MARK: - Success state
+
     private var unlockSuccessView: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 24) {
             Spacer()
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 80))
-                .foregroundColor(.green)
-            Text("Unlocked!")
-                .font(.largeTitle.bold())
-            Text("\(vm.rule.appDisplayName) is now unblocked.")
-                .foregroundColor(.secondary)
+
+            ZStack {
+                Circle()
+                    .fill(Color.appSuccess.opacity(0.12))
+                    .frame(width: 120, height: 120)
+                Image(systemName: "checkmark")
+                    .font(.system(size: 52, weight: .bold))
+                    .foregroundStyle(Color.appSuccess)
+            }
+            .shadow(color: Color.appSuccess.opacity(0.4), radius: 20, x: 0, y: 0)
+
+            VStack(spacing: 8) {
+                Text("Unlocked")
+                    .font(.largeTitle.bold())
+                    .foregroundStyle(Color.appPrimary)
+                Text("\(vm.rule.appDisplayName) is now unblocked.")
+                    .font(.subheadline)
+                    .foregroundStyle(Color.appSecondary)
+            }
+
             Spacer()
         }
         .padding()

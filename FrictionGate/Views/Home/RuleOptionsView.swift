@@ -1,10 +1,6 @@
 import SwiftUI
 
 /// A sheet that opens from the options button (⋯) on a rule row.
-/// Shows rule identity at the top, then a delete flow below.
-///
-/// Delete requires the user to manually type a short confirmation phrase
-/// (paste is disabled) so accidental deletions are impossible.
 struct RuleOptionsView: View {
 
     let rule: Rule
@@ -15,7 +11,6 @@ struct RuleOptionsView: View {
     @State private var showDeleteConfirmation = false
     @State private var typedText = ""
 
-    /// The phrase the user must type exactly to unlock the Delete button.
     private var deletePhrase: String {
         let name = rule.appDisplayName
             .trimmingCharacters(in: .whitespaces)
@@ -25,8 +20,6 @@ struct RuleOptionsView: View {
             : "I want to permanently delete \(name.lowercased())"
     }
 
-    /// Both sides are trimmed and lowercased so autocorrect, trailing spaces,
-    /// or capitalisation never silently block the button.
     private var canDelete: Bool {
         let typed  = typedText.trimmingCharacters(in: .whitespaces).lowercased()
         let target = deletePhrase.trimmingCharacters(in: .whitespaces).lowercased()
@@ -44,73 +37,84 @@ struct RuleOptionsView: View {
                     deleteEntrySection
                 }
             }
+            .inkBackground()
             .listStyle(.insetGrouped)
             .navigationTitle("Rule Options")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
+                        .foregroundStyle(Color.appAccent)
                 }
             }
         }
     }
 
-    // MARK: - Rule info (full details)
+    // MARK: - Rule info
 
     private var ruleInfoSection: some View {
         Group {
-            // App identity
             Section {
                 HStack(spacing: 14) {
                     AppIconView(appName: rule.appDisplayName,
                                 bundleID: rule.appBundleID, size: 52)
 
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 6) {
                         Text(rule.appDisplayName.isEmpty ? "Unnamed App" : rule.appDisplayName)
                             .font(.title3.bold())
-                        HStack(spacing: 6) {
-                            statusBadge
-                        }
+                            .foregroundStyle(Color.appPrimary)
+                        statusBadge
                     }
                 }
                 .padding(.vertical, 6)
             } header: {
-                Text("App")
+                Text("App").foregroundStyle(Color.appSecondary)
             }
+            .surfaceRow()
+            .listSectionSeparatorTint(Color.appBorder)
 
-            // Block conditions
             if !rule.conditions.isEmpty {
                 Section {
                     ForEach(rule.conditions.indices, id: \.self) { i in
                         Label(rule.conditions[i].displayDescription,
                               systemImage: conditionIcon(rule.conditions[i]))
                             .font(.subheadline)
+                            .foregroundStyle(Color.appPrimary)
+                            .labelStyle(ThemedLabelStyle())
                     }
                 } header: {
                     Label("When It Blocks", systemImage: "clock.badge.xmark")
+                        .foregroundStyle(Color.appSecondary)
                 }
+                .surfaceRow()
+                .listRowSeparatorTint(Color.appBorder)
             }
 
-            // Unlock challenges
             if !rule.challenges.isEmpty {
                 Section {
                     ForEach(rule.challenges.indices, id: \.self) { i in
                         Label(rule.challenges[i].longDescription,
                               systemImage: challengeIcon(rule.challenges[i]))
                             .font(.subheadline)
+                            .foregroundStyle(Color.appPrimary)
+                            .labelStyle(ThemedLabelStyle())
                     }
                 } header: {
                     Label("Unlock Challenges", systemImage: "lock.open")
+                        .foregroundStyle(Color.appSecondary)
                 }
+                .surfaceRow()
+                .listRowSeparatorTint(Color.appBorder)
             }
 
-            // Session & escalation
             Section {
                 Label(
                     "\(rule.sessionDurationMinutes) min session after each unlock",
                     systemImage: "hourglass"
                 )
                 .font(.subheadline)
+                .foregroundStyle(Color.appPrimary)
+                .labelStyle(ThemedLabelStyle())
 
                 if rule.escalationEnabled {
                     Label(
@@ -118,17 +122,21 @@ struct RuleOptionsView: View {
                         systemImage: "arrow.up.right.circle.fill"
                     )
                     .font(.subheadline)
-                    .foregroundColor(.orange)
+                    .foregroundStyle(Color.appWarning)
+                    .labelStyle(ThemedLabelStyle())
                 } else {
                     Label("Escalation off", systemImage: "arrow.up.right.circle")
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(Color.appSecondary)
+                        .labelStyle(ThemedLabelStyle())
                 }
             } header: {
                 Label("Session & Escalation", systemImage: "dial.medium")
+                    .foregroundStyle(Color.appSecondary)
             }
+            .surfaceRow()
+            .listRowSeparatorTint(Color.appBorder)
 
-            // Unlock history
             Section {
                 detailRow("Total unlocks", value: "\(rule.unlockCount)")
                 if let last = rule.lastUnlockedAt {
@@ -139,7 +147,10 @@ struct RuleOptionsView: View {
                 detailRow("Created", value: rule.createdAt.formatted(date: .abbreviated, time: .omitted))
             } header: {
                 Label("History", systemImage: "chart.bar")
+                    .foregroundStyle(Color.appSecondary)
             }
+            .surfaceRow()
+            .listRowSeparatorTint(Color.appBorder)
         }
     }
 
@@ -148,28 +159,20 @@ struct RuleOptionsView: View {
     private var statusBadge: some View {
         Group {
             if !rule.isActive {
-                badge("Paused", color: .orange)
+                ThemeBadge(text: "Paused", color: Color.appWarning)
             } else {
-                badge("Active", color: .green)
+                ThemeBadge(text: "Active", color: Color.appSuccess)
             }
         }
     }
 
-    private func badge(_ text: String, color: Color) -> some View {
-        Text(text)
-            .font(.caption2.bold())
-            .foregroundColor(color)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(color.opacity(0.15))
-            .clipShape(Capsule())
-    }
-
     private func detailRow(_ label: String, value: String) -> some View {
         HStack {
-            Text(label).foregroundColor(.secondary)
+            Text(label).foregroundStyle(Color.appSecondary)
             Spacer()
-            Text(value).fontWeight(.medium)
+            Text(value)
+                .fontWeight(.medium)
+                .foregroundStyle(Color.appPrimary)
         }
         .font(.subheadline)
     }
@@ -206,83 +209,95 @@ struct RuleOptionsView: View {
             }
         } footer: {
             Text("Permanently removes the rule and all blocking schedules for this app.")
+                .foregroundStyle(Color.appTertiary)
         }
+        .surfaceRow()
     }
 
     // MARK: - Delete confirmation
 
     private var deleteConfirmationSection: some View {
         Section {
-            // Phrase to type
             VStack(alignment: .leading, spacing: 10) {
                 Text("Type the following to confirm:")
                     .font(.footnote)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(Color.appSecondary)
 
                 Text(deletePhrase)
                     .font(.system(.subheadline, design: .monospaced).bold())
+                    .foregroundStyle(Color.appPrimary)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 8)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color(.tertiarySystemFill))
+                    .background(Color.appSurface3)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
 
-                // Progress indicator
                 let target  = Array(deletePhrase.trimmingCharacters(in: .whitespaces).lowercased())
                 let typed   = Array(typedText.trimmingCharacters(in: .whitespaces).lowercased())
                 let matched = zip(typed, target).filter { $0 == $1 }.count
-                HStack(spacing: 4) {
+                HStack(spacing: 6) {
                     Image(systemName: canDelete ? "checkmark.circle.fill" : "circle")
-                        .foregroundColor(canDelete ? .green : .secondary)
+                        .foregroundStyle(canDelete ? Color.appSuccess : Color.appTertiary)
                     Text(canDelete
                          ? "Phrase matched. Confirm below"
                          : "\(matched) / \(target.count) characters")
                         .font(.caption)
-                        .foregroundColor(canDelete ? .green : .secondary)
+                        .foregroundStyle(canDelete ? Color.appSuccess : Color.appSecondary)
                 }
             }
             .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 4, trailing: 16))
 
-            // Paste-blocked text field — autocapitalisation off so the phrase
-            // matches without the user needing to manually un-capitalise.
             PasteBlockingTextField(
                 placeholder: "Type here…",
                 text: $typedText,
                 autocapitalizationType: .none
             )
-                .frame(height: 36)
-                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 12, trailing: 16))
+            .frame(height: 36)
+            .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 12, trailing: 16))
 
-            // Confirm button
-            Button(role: .destructive) {
-                onDelete()
-                dismiss()
-            } label: {
-                HStack {
-                    Spacer()
-                    Label("Confirm Delete", systemImage: "trash.fill")
-                        .font(.headline)
-                    Spacer()
-                }
-            }
-            .disabled(!canDelete)
-            .listRowBackground(canDelete ? Color.red : Color(.systemFill))
-            .foregroundColor(canDelete ? .white : Color(.tertiaryLabel))
+                    Button(role: .destructive) {
+                        onDelete()
+                        dismiss()
+                    } label: {
+                        HStack {
+                            Spacer()
+                            Label("Confirm Delete", systemImage: "trash.fill")
+                                .font(.headline)
+                            Spacer()
+                        }
+                    }
+                    .disabled(!canDelete)
+                    .listRowBackground(canDelete ? Color.appDestructive : Color.appSurface2)
+                    .foregroundStyle(canDelete ? Color.appOnAccent : Color.appTertiary)
 
-            // Cancel confirmation
             Button("Cancel") {
                 typedText = ""
                 withAnimation(.easeInOut(duration: 0.2)) {
                     showDeleteConfirmation = false
                 }
             }
-            .foregroundColor(.secondary)
+            .foregroundStyle(Color.appSecondary)
 
         } header: {
             Label("Confirm Deletion", systemImage: "exclamationmark.triangle")
-                .foregroundColor(.red)
+                .foregroundStyle(Color.appDestructive)
         } footer: {
             Text("This cannot be undone. The app will be unblocked immediately.")
+                .foregroundStyle(Color.appTertiary)
+        }
+        .surfaceRow()
+        .listRowSeparatorTint(Color.appBorder)
+    }
+}
+
+// MARK: - Themed label style (icon in accent, text in primary)
+
+private struct ThemedLabelStyle: LabelStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(spacing: 10) {
+            configuration.icon
+                .foregroundStyle(Color.appAccent)
+            configuration.title
         }
     }
 }

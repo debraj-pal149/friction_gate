@@ -4,22 +4,18 @@ struct ConditionPickerView: View {
 
     @ObservedObject var vm: RuleBuilderViewModel
 
-    // Time window state
     @State private var twEnabled  = false
     @State private var twStart    = dc(hour: 9,  minute: 0).asDate
     @State private var twEnd      = dc(hour: 18, minute: 0).asDate
     @State private var twDays: DaySet = .weekdays
 
-    // After wake-up state
     @State private var wakeEnabled  = false
     @State private var wakeMins     = 60
 
-    // Before sleep state
     @State private var sleepEnabled  = false
     @State private var sleepTimeDC   = dc(hour: 23, minute: 0).asDate
     @State private var sleepDuration = 30
 
-    // Daily open limit state
     @State private var limitEnabled = false
     @State private var limitMax     = 3
 
@@ -30,6 +26,7 @@ struct ConditionPickerView: View {
             beforeSleepSection
             dailyLimitSection
         }
+        .inkBackground()
         .listStyle(.insetGrouped)
         .onAppear { loadFromVM() }
     }
@@ -45,16 +42,20 @@ struct ConditionPickerView: View {
                 DatePicker("End",   selection: $twEnd.didSet { _ in sync() },
                            displayedComponents: .hourAndMinute)
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("Days").foregroundColor(.secondary)
+                    Text("Days").foregroundStyle(Color.appSecondary)
                     DaySetPicker(selection: $twDays.didSet { _ in sync() })
                 }
                 .padding(.vertical, 4)
             }
         } header: {
             Label("Time Window", systemImage: "clock")
+                .foregroundStyle(Color.appSecondary)
         } footer: {
-            Text("Block the app between two times on the selected days. Perfect for work hours or bedtime routines.")
+            Text("Block the app between two times on the selected days.")
+                .foregroundStyle(Color.appTertiary)
         }
+        .surfaceRow()
+        .listRowSeparatorTint(Color.appBorder)
     }
 
     private var afterWakeUpSection: some View {
@@ -64,12 +65,17 @@ struct ConditionPickerView: View {
                 Stepper("Duration: \(wakeMins) min",
                         value: $wakeMins.didSet { _ in sync() },
                         in: 5...240, step: 5)
+                .foregroundStyle(Color.appPrimary)
             }
         } header: {
             Label("After Wake-Up", systemImage: "sunrise")
+                .foregroundStyle(Color.appSecondary)
         } footer: {
-            Text("Blocks the app for a set period after your phone detects you've woken up (based on idle time). Great for a phone-free morning.")
+            Text("Blocks the app for a set period after your phone detects you've woken up.")
+                .foregroundStyle(Color.appTertiary)
         }
+        .surfaceRow()
+        .listRowSeparatorTint(Color.appBorder)
     }
 
     private var beforeSleepSection: some View {
@@ -81,12 +87,17 @@ struct ConditionPickerView: View {
                 Stepper("Duration: \(sleepDuration) min",
                         value: $sleepDuration.didSet { _ in sync() },
                         in: 5...120, step: 5)
+                .foregroundStyle(Color.appPrimary)
             }
         } header: {
             Label("Before Sleep", systemImage: "moon")
+                .foregroundStyle(Color.appSecondary)
         } footer: {
-            Text("Blocks the app for a set number of minutes before your configured sleep time. Wind down without distractions.")
+            Text("Blocks the app for a set number of minutes before your configured sleep time.")
+                .foregroundStyle(Color.appTertiary)
         }
+        .surfaceRow()
+        .listRowSeparatorTint(Color.appBorder)
     }
 
     private var dailyLimitSection: some View {
@@ -96,12 +107,17 @@ struct ConditionPickerView: View {
                 Stepper("Max opens: \(limitMax)",
                         value: $limitMax.didSet { _ in sync() },
                         in: 1...20)
+                .foregroundStyle(Color.appPrimary)
             }
         } header: {
             Label("Daily Open Limit", systemImage: "chart.bar")
+                .foregroundStyle(Color.appSecondary)
         } footer: {
-            Text("Blocks the app after it's been opened a set number of times today. Curbs habitual checking.")
+            Text("Blocks the app after it's been opened a set number of times today.")
+                .foregroundStyle(Color.appTertiary)
         }
+        .surfaceRow()
+        .listRowSeparatorTint(Color.appBorder)
     }
 
     // MARK: - Sync
@@ -113,16 +129,12 @@ struct ConditionPickerView: View {
             let end   = Calendar.current.dateComponents([.hour, .minute], from: twEnd)
             conditions.append(.timeWindow(start: start, end: end, days: twDays))
         }
-        if wakeEnabled {
-            conditions.append(.afterWakeUp(durationMinutes: wakeMins))
-        }
+        if wakeEnabled  { conditions.append(.afterWakeUp(durationMinutes: wakeMins)) }
         if sleepEnabled {
             let sleepDC = Calendar.current.dateComponents([.hour, .minute], from: sleepTimeDC)
             conditions.append(.beforeSleep(sleepTime: sleepDC, durationMinutes: sleepDuration))
         }
-        if limitEnabled {
-            conditions.append(.dailyOpenLimit(maxOpens: limitMax))
-        }
+        if limitEnabled { conditions.append(.dailyOpenLimit(maxOpens: limitMax)) }
         vm.conditions = conditions
     }
 
@@ -130,20 +142,13 @@ struct ConditionPickerView: View {
         for condition in vm.conditions {
             switch condition {
             case .timeWindow(let start, let end, let days):
-                twEnabled = true
-                twStart   = start.asDate
-                twEnd     = end.asDate
-                twDays    = days
+                twEnabled = true; twStart = start.asDate; twEnd = end.asDate; twDays = days
             case .afterWakeUp(let mins):
-                wakeEnabled = true
-                wakeMins    = mins
+                wakeEnabled = true; wakeMins = mins
             case .beforeSleep(let sleepDC, let mins):
-                sleepEnabled   = true
-                sleepTimeDC    = sleepDC.asDate
-                sleepDuration  = mins
+                sleepEnabled = true; sleepTimeDC = sleepDC.asDate; sleepDuration = mins
             case .dailyOpenLimit(let max):
-                limitEnabled = true
-                limitMax     = max
+                limitEnabled = true; limitMax = max
             }
         }
     }
@@ -151,8 +156,6 @@ struct ConditionPickerView: View {
 
 // MARK: - Day picker
 
-/// A full day-selection control with preset chips (Every day / Weekdays / Weekends)
-/// above individual day toggles.  Any combination of days is supported.
 private struct DaySetPicker: View {
     @Binding var selection: DaySet
 
@@ -169,27 +172,27 @@ private struct DaySetPicker: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            // Quick-select preset chips
             HStack(spacing: 8) {
                 ForEach(presets, id: \.label) { preset in
-                    Button(preset.label) {
-                        selection = preset.value
-                    }
-                    .buttonStyle(.plain)
-                    .font(.caption.bold())
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(
-                        selection == preset.value
-                            ? Color.blue
-                            : Color(.tertiarySystemFill)
-                    )
-                    .foregroundColor(selection == preset.value ? .white : .primary)
-                    .clipShape(Capsule())
+                    Button(preset.label) { selection = preset.value }
+                        .buttonStyle(.plain)
+                        .font(.caption.bold())
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(
+                            selection == preset.value
+                                ? Color.appAccent
+                                : Color.appSurface3
+                        )
+                        .foregroundStyle(
+                            selection == preset.value
+                                ? Color.appPrimary
+                                : Color.appSecondary
+                        )
+                        .clipShape(Capsule())
                 }
             }
 
-            // Individual day buttons
             HStack(spacing: 4) {
                 ForEach(days, id: \.day.rawValue) { item in
                     Button(item.label) {
@@ -202,20 +205,26 @@ private struct DaySetPicker: View {
                     .buttonStyle(.plain)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 7)
-                    .background(selection.contains(item.day) ? Color.blue : Color(.tertiarySystemFill))
-                    .foregroundColor(selection.contains(item.day) ? .white : .primary)
+                    .background(
+                        selection.contains(item.day)
+                            ? Color.appAccent
+                            : Color.appSurface3
+                    )
+                    .foregroundStyle(
+                        selection.contains(item.day)
+                            ? Color.appPrimary
+                            : Color.appSecondary
+                    )
                     .clipShape(RoundedRectangle(cornerRadius: 7))
                     .font(.caption.bold())
                 }
             }
         }
-        // Prevent the List row from capturing taps meant for our buttons.
         .contentShape(Rectangle())
     }
 }
 
-// MARK: - DateComponents convenience (file-private factory only)
-// `DateComponents.asDate` is defined module-wide in Extensions/Date+Helpers.swift.
+// MARK: - DateComponents convenience
 
 private func dc(hour: Int, minute: Int = 0) -> DateComponents {
     DateComponents(hour: hour, minute: minute)
@@ -224,7 +233,6 @@ private func dc(hour: Int, minute: Int = 0) -> DateComponents {
 // MARK: - Binding didSet helper
 
 extension Binding {
-    /// Adds a side effect whenever the binding's value is set.
     func didSet(_ action: @escaping (Value) -> Void) -> Binding<Value> {
         Binding(
             get: { self.wrappedValue },

@@ -6,7 +6,6 @@ struct AppPickerView: View {
     @ObservedObject var vm: RuleBuilderViewModel
     @EnvironmentObject private var appState: AppState
 
-    /// True once the picker has committed a selection (tokencount > 0).
     private var hasSelection: Bool {
         !vm.activitySelection.applicationTokens.isEmpty
     }
@@ -25,37 +24,26 @@ struct AppPickerView: View {
         VStack(spacing: 0) {
             FamilyActivityPicker(
                 headerText: "Select the app you want to block",
-                footerText: "Only one app per rule.",
+                footerText: "One app per rule.",
                 selection: interceptedBinding
             )
 
             if hasSelection {
-                Divider()
+                Divider().background(Color.appBorder)
                 confirmationStrip
             }
         }
     }
-
-    // MARK: - Custom binding
-    //
-    // FamilyActivityPicker is a UIKit system view. Using a custom Binding setter
-    // is more reliable than onChange because it intercepts the update synchronously,
-    // regardless of how the UIKit layer triggers the callback.
 
     private var interceptedBinding: Binding<FamilyActivitySelection> {
         Binding(
             get: { vm.activitySelection },
             set: { new in
                 vm.activitySelection = new
-                // Try to auto-populate the display name from the Application metadata.
-                // NOTE: localizedDisplayName is nil in development environments
-                // without a production-approved Family Controls entitlement.
-                // In production this will be auto-populated; in dev the user types it.
                 if let app = new.applications.first {
                     if let name = app.localizedDisplayName, !name.isEmpty {
                         vm.appDisplayName = name
                     }
-                    // Remove the two lines below if bundleIdentifier doesn't compile.
                     if let bid = app.bundleIdentifier, !bid.isEmpty {
                         vm.appBundleID = bid
                     }
@@ -67,64 +55,65 @@ struct AppPickerView: View {
     // MARK: - Confirmation strip
 
     private var confirmationStrip: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 14) {
-                AppIconView(appName: vm.appDisplayName.isEmpty ? "?" : vm.appDisplayName,
-                            bundleID: vm.appBundleID, size: 44)
+        HStack(spacing: 14) {
+            AppIconView(appName: vm.appDisplayName.isEmpty ? "?" : vm.appDisplayName,
+                        bundleID: vm.appBundleID, size: 44)
 
-                VStack(alignment: .leading, spacing: 2) {
-                    if vm.appDisplayName.isEmpty {
-                        // Name wasn't auto-populated — show an inline field.
-                        TextField("App name (e.g. Instagram)", text: $vm.appDisplayName)
-                            .font(.headline)
-                            .submitLabel(.done)
-                    } else {
-                        Text(vm.appDisplayName)
-                            .font(.headline)
-                    }
-                    Text(vm.appDisplayName.isEmpty
-                         ? "Type the app name above, then tap Next"
-                         : "Tap Next to set blocking conditions")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-
-                Spacer()
-
+            VStack(alignment: .leading, spacing: 2) {
                 if vm.appDisplayName.isEmpty {
-                    Image(systemName: "pencil.circle")
-                        .foregroundColor(.orange)
-                        .font(.title3)
+                    TextField("App name (e.g. Instagram)", text: $vm.appDisplayName)
+                        .font(.headline)
+                        .foregroundStyle(Color.appPrimary)
+                        .submitLabel(.done)
                 } else {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(.green)
-                        .font(.title3)
+                    Text(vm.appDisplayName)
+                        .font(.headline)
+                        .foregroundStyle(Color.appPrimary)
                 }
+                Text(vm.appDisplayName.isEmpty
+                     ? "Type the app name above, then tap Next"
+                     : "Tap Next to set blocking conditions")
+                    .font(.caption)
+                    .foregroundStyle(Color.appSecondary)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(Color(.secondarySystemGroupedBackground))
+
+            Spacer()
+
+            Image(systemName: vm.appDisplayName.isEmpty ? "pencil.circle" : "checkmark.circle.fill")
+                .foregroundStyle(vm.appDisplayName.isEmpty
+                                 ? Color.appWarning
+                                 : Color.appSuccess)
+                .font(.title3)
         }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .background(Color.appSurface)
     }
 
     // MARK: - Auth required fallback
 
     private var authorizationRequiredView: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 28) {
             Spacer()
 
-            Image(systemName: "lock.shield")
-                .font(.system(size: 56))
-                .foregroundColor(.orange)
+            ZStack {
+                Circle()
+                    .fill(Color.appAccentFill)
+                    .frame(width: 80, height: 80)
+                Image(systemName: "lock.shield")
+                    .font(.system(size: 36, weight: .light))
+                    .foregroundStyle(Color.appAccent)
+            }
 
-            VStack(spacing: 8) {
+            VStack(spacing: 10) {
                 Text("Screen Time Permission Required")
                     .font(.title3.bold())
+                    .foregroundStyle(Color.appPrimary)
                     .multilineTextAlignment(.center)
 
                 Text(statusMessage)
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(Color.appSecondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
             }
@@ -151,7 +140,7 @@ struct AppPickerView: View {
             if let err = appState.familyControlsError {
                 Text("Technical detail: \(err)")
                     .font(.caption2)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(Color.appTertiary)
                     .padding(.horizontal)
                     .multilineTextAlignment(.center)
             }
@@ -159,6 +148,7 @@ struct AppPickerView: View {
             Spacer()
         }
         .padding()
+        .background(Color.appBackground)
     }
 
     private var statusMessage: String {

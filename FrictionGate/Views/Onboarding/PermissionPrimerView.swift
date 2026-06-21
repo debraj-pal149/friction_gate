@@ -1,12 +1,6 @@
 import SwiftUI
 import FamilyControls
 
-/// Full-screen onboarding card shown exactly once — before the system
-/// Screen Time permission dialog appears.
-///
-/// The primer explains clearly that tapping "Allow" on the Apple dialog
-/// is REQUIRED for Friction to function at all.  Without this context,
-/// users often tap "Don't Allow" reflexively on unfamiliar permission prompts.
 struct PermissionPrimerView: View {
 
     @EnvironmentObject private var appState: AppState
@@ -15,152 +9,186 @@ struct PermissionPrimerView: View {
 
     var body: some View {
         ZStack {
-            Color(.systemGroupedBackground).ignoresSafeArea()
+            Color.appBackground.ignoresSafeArea()
 
             ScrollView {
-                VStack(spacing: 32) {
-                    Spacer(minLength: 40)
+                VStack(spacing: 36) {
+                    Spacer(minLength: 48)
 
-                    // App identity
-                    VStack(spacing: 12) {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                                .fill(
-                                    LinearGradient(
-                                        colors: [.blue, .indigo],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
-                                .frame(width: 88, height: 88)
-                                .shadow(color: .blue.opacity(0.4), radius: 12, y: 6)
+                    appIdentity
+                    headline
+                    featureList
+                    warningCallout
+                    disclosure
+                    ctaButton
+                    captionNote
 
-                            Image(systemName: "lock.shield.fill")
-                                .font(.system(size: 42))
-                                .foregroundColor(.white)
-                        }
-
-                        Text("Friction")
-                            .font(.largeTitle.bold())
-                    }
-
-                    // Headline
-                    VStack(spacing: 10) {
-                        Text("One permission required")
-                            .font(.title2.bold())
-                            .multilineTextAlignment(.center)
-
-                        Text("Apple will ask you for Screen Time access.\nYou **must tap Allow**. This is the only way Friction can block apps.")
-                            .font(.body)
-                            .multilineTextAlignment(.center)
-                            .foregroundColor(.secondary)
-                            .padding(.horizontal, 8)
-                    }
-
-                    // Feature list
-                    VStack(spacing: 14) {
-                        featureRow(
-                            icon: "lock.fill",
-                            color: .blue,
-                            title: "App blocking",
-                            detail: "Friction shows a block screen when you try to open a restricted app."
-                        )
-                        featureRow(
-                            icon: "figure.walk",
-                            color: .green,
-                            title: "Unlock challenges",
-                            detail: "Walk steps, solve maths, or wait before access is granted."
-                        )
-                        featureRow(
-                            icon: "clock.badge.checkmark",
-                            color: .orange,
-                            title: "Scheduled rules",
-                            detail: "Blocks activate automatically on your chosen days and times."
-                        )
-                    }
-                    .padding(.horizontal, 4)
-
-                    // Warning callout
-                    HStack(alignment: .top, spacing: 12) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundColor(.orange)
-                            .font(.title3)
-                        Text("If you tap **Don't Allow**, Friction cannot block any apps. The app will have no functionality whatsoever. You can change this later in Settings → Screen Time, but you must come back and grant access.")
-                            .font(.footnote)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding(14)
-                    .background(Color.orange.opacity(0.1))
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    .padding(.horizontal, 4)
-
-                    // "Why?" expandable
-                    DisclosureGroup("Why does Friction need this?", isExpanded: $showDetail) {
-                        Text(
-                            "iOS doesn't allow apps to block other apps by default. Apple created the Screen Time framework specifically for parental controls and focus tools. Friction uses this framework under an Apple-approved developer entitlement. The permission you are granting is to iOS's own Screen Time system, not to any third-party server. Friction has no backend and stores all data on your device."
-                        )
-                        .font(.footnote)
-                        .foregroundColor(.secondary)
-                        .padding(.top, 8)
-                    }
-                    .font(.footnote.bold())
-                    .padding(.horizontal, 4)
-
-                    // CTA
-                    Button {
-                        requestFamilyControls()
-                    } label: {
-                        HStack {
-                            if isRequesting {
-                                ProgressView()
-                                    .tint(.white)
-                                    .padding(.trailing, 6)
-                            }
-                            Text(isRequesting ? "Requesting…" : "Enable Friction")
-                                .font(.headline)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(Color.blue)
-                        .foregroundColor(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    }
-                    .disabled(isRequesting)
-
-                    Text("The Apple permission dialog will appear immediately after tapping.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-
-                    Spacer(minLength: 24)
+                    Spacer(minLength: 32)
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 28)
             }
         }
     }
 
-    // MARK: - Feature row helper
+    // MARK: - App identity
 
-    private func featureRow(icon: String, color: Color, title: String, detail: String) -> some View {
-        HStack(alignment: .top, spacing: 14) {
+    private var appIdentity: some View {
+        VStack(spacing: 16) {
             ZStack {
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(color.opacity(0.15))
-                    .frame(width: 40, height: 40)
-                Image(systemName: icon)
-                    .foregroundColor(color)
-                    .font(.system(size: 18, weight: .semibold))
+                RoundedRectangle(cornerRadius: 26, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.appAccent, Color(hex: "0D3060")],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 96, height: 96)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 26, style: .continuous)
+                            .stroke(Color.appAccent.opacity(0.4), lineWidth: 1)
+                    )
+                    .shadow(color: Color.appAccent.opacity(0.3), radius: 16, y: 8)
+
+                Image(systemName: "lock.shield.fill")
+                    .font(.system(size: 44))
+                    .foregroundStyle(Color.appPrimary)
             }
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.subheadline.bold())
-                Text(detail).font(.footnote).foregroundColor(.secondary)
+            Text("Friction")
+                .font(.largeTitle.bold())
+                .foregroundStyle(Color.appPrimary)
+        }
+    }
+
+    // MARK: - Headline
+
+    private var headline: some View {
+        VStack(spacing: 10) {
+            Text("One permission required")
+                .font(.title2.bold())
+                .foregroundStyle(Color.appPrimary)
+                .multilineTextAlignment(.center)
+
+            Text("Apple will ask you for Screen Time access.\nYou **must tap Allow**. This is the only way Friction can block apps.")
+                .font(.body)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(Color.appSecondary)
+                .padding(.horizontal, 4)
+        }
+    }
+
+    // MARK: - Feature list
+
+    private var featureList: some View {
+        VStack(spacing: 0) {
+            featureRow(icon: "lock.fill",
+                       title: "App blocking",
+                       detail: "Friction shows a block screen when you try to open a restricted app.")
+            Divider().background(Color.white.opacity(0.06))
+            featureRow(icon: "figure.walk",
+                       title: "Unlock challenges",
+                       detail: "Walk steps, solve maths, or wait before access is granted.")
+            Divider().background(Color.white.opacity(0.06))
+            featureRow(icon: "clock.badge.checkmark",
+                       title: "Scheduled rules",
+                       detail: "Blocks activate automatically on your chosen days and times.")
+        }
+        .padding(16)
+        .glassCard(cornerRadius: 16)
+    }
+
+    private func featureRow(icon: String, title: String, detail: String) -> some View {
+        HStack(alignment: .top, spacing: 16) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Color.appAccentFill)
+                    .frame(width: 38, height: 38)
+                Image(systemName: icon)
+                    .foregroundStyle(Color.appAccent)
+                    .font(.system(size: 16, weight: .semibold))
+            }
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.subheadline.bold())
+                    .foregroundStyle(Color.appPrimary)
+                Text(detail)
+                    .font(.footnote)
+                    .foregroundStyle(Color.appSecondary)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 14)
     }
 
-    // MARK: - Request
+    // MARK: - Warning callout
+
+    private var warningCallout: some View {
+        HStack(alignment: .top, spacing: 14) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(Color.appWarning)
+                .font(.title3)
+
+            Text("If you tap **Don't Allow**, Friction cannot block any apps and will have no functionality. You can change this later in Settings → Screen Time.")
+                .font(.footnote)
+                .foregroundStyle(Color.appSecondary)
+        }
+        .padding(16)
+        .background(Color.appWarning.opacity(0.08))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(Color.appWarning.opacity(0.2), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    // MARK: - Why disclosure
+
+    private var disclosure: some View {
+        DisclosureGroup("Why does Friction need this?", isExpanded: $showDetail) {
+            Text(
+                "iOS doesn't allow apps to block other apps by default. Apple created the Screen Time framework specifically for parental controls and focus tools. Friction uses this framework under an Apple-approved developer entitlement. The permission you are granting is to iOS's own Screen Time system, not to any third-party server. Friction has no backend and stores all data on your device."
+            )
+            .font(.footnote)
+            .foregroundStyle(Color.appSecondary)
+            .padding(.top, 8)
+        }
+        .font(.footnote.bold())
+        .foregroundStyle(Color.appSecondary)
+        .tint(Color.appAccent)
+    }
+
+    // MARK: - CTA
+
+    private var ctaButton: some View {
+        Button {
+            requestFamilyControls()
+        } label: {
+            HStack(spacing: 10) {
+                if isRequesting {
+                    ProgressView()
+                        .tint(Color.appOnAccent)
+                }
+                Text(isRequesting ? "Requesting…" : "Enable Friction")
+                    .font(.headline)
+                    .foregroundStyle(Color.appOnAccent)
+            }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 18)
+        .background(Color.appAccent)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+    .disabled(isRequesting)
+    .buttonStyle(.plain)
+}
+
+private var captionNote: some View {
+    Text("The Apple permission dialog will appear immediately after tapping.")
+        .font(.caption)
+        .foregroundStyle(Color.appTertiary)
+        .multilineTextAlignment(.center)
+}    // MARK: - Request
 
     private func requestFamilyControls() {
         isRequesting = true

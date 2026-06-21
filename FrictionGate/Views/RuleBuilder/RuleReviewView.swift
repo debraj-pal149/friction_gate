@@ -7,48 +7,57 @@ struct RuleReviewView: View {
 
     var body: some View {
         List {
-            // App identity header
             appHeaderSection
 
-            // Summary sentence
             Section {
                 Text(vm.reviewSummary)
                     .font(.body)
                     .lineSpacing(5)
+                    .foregroundStyle(Color.appPrimary)
                     .padding(.vertical, 4)
             } header: {
                 Label("Rule Summary", systemImage: "doc.text")
+                    .foregroundStyle(Color.appSecondary)
             }
+            .surfaceRow()
+            .listRowSeparatorTint(Color.appBorder)
 
-            // Quick-view of conditions
             if !vm.conditions.isEmpty {
                 Section("Conditions") {
                     ForEach(vm.conditions.indices, id: \.self) { i in
                         Label(vm.conditions[i].displayDescription,
                               systemImage: conditionIcon(vm.conditions[i]))
                             .font(.subheadline)
+                            .foregroundStyle(Color.appPrimary)
+                            .labelStyle(AccentedIconLabelStyle())
                     }
                 }
+                .surfaceRow()
+                .listRowSeparatorTint(Color.appBorder)
             }
 
-            // Quick-view of challenges
             if !vm.challenges.isEmpty {
                 Section("Challenges") {
                     ForEach(vm.challenges.indices, id: \.self) { i in
                         Label(vm.challenges[i].longDescription,
                               systemImage: challengeIcon(vm.challenges[i]))
                             .font(.subheadline)
+                            .foregroundStyle(Color.appPrimary)
+                            .labelStyle(AccentedIconLabelStyle())
                     }
                 }
+                .surfaceRow()
+                .listRowSeparatorTint(Color.appBorder)
             }
 
-            // Session & escalation summary
             Section("Session & Escalation") {
                 Label(
                     "\(vm.sessionDurationMinutes) min session after each unlock",
                     systemImage: "hourglass"
                 )
                 .font(.subheadline)
+                .foregroundStyle(Color.appPrimary)
+                .labelStyle(AccentedIconLabelStyle())
 
                 if vm.escalationEnabled {
                     Label(
@@ -56,12 +65,16 @@ struct RuleReviewView: View {
                         systemImage: "arrow.up.right.circle"
                     )
                     .font(.subheadline)
+                    .foregroundStyle(Color.appPrimary)
+                    .labelStyle(AccentedIconLabelStyle())
                 } else {
                     Label("Escalation off", systemImage: "arrow.up.right.circle")
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(Color.appSecondary)
                 }
             }
+            .surfaceRow()
+            .listRowSeparatorTint(Color.appBorder)
 
             Section {
                 Button {
@@ -74,11 +87,13 @@ struct RuleReviewView: View {
                         Spacer()
                     }
                 }
-                .foregroundColor(.white)
-                .listRowBackground(vm.isValid ? Color.blue : Color(.systemFill))
+                .foregroundStyle(Color.appOnAccent)
+                .listRowBackground(vm.isValid ? Color.appAccent : Color.appSurface2)
                 .disabled(!vm.isValid)
             }
+            .listRowSeparatorTint(Color.clear)
         }
+        .inkBackground()
         .listStyle(.insetGrouped)
     }
 
@@ -92,13 +107,15 @@ struct RuleReviewView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(vm.appDisplayName.isEmpty ? "Selected App" : vm.appDisplayName)
                         .font(.title3.bold())
+                        .foregroundStyle(Color.appPrimary)
                     Text("Rule applies to this app")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(Color.appSecondary)
                 }
             }
             .padding(.vertical, 6)
         }
+        .surfaceRow()
     }
 
     // MARK: - Icon helpers
@@ -123,10 +140,20 @@ struct RuleReviewView: View {
     }
 }
 
-// MARK: - UnlockChallenge long description (used in the review screen)
+// MARK: - Accented icon label style
+
+private struct AccentedIconLabelStyle: LabelStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(spacing: 10) {
+            configuration.icon.foregroundStyle(Color.appAccent)
+            configuration.title
+        }
+    }
+}
+
+// MARK: - UnlockChallenge long description
 
 extension UnlockChallenge {
-    /// Full one-line description shown in the review screen's challenge list.
     var longDescription: String {
         switch self {
         case .steps(let n):        return "Walk \(n) steps"

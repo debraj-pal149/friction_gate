@@ -44,14 +44,17 @@ struct HomeView: View {
                     Button { activeSheet = .builder } label: {
                         Image(systemName: "plus.circle.fill")
                             .font(.title3)
+                            .foregroundStyle(Color.appAccent)
                     }
                 }
                 ToolbarItemGroup(placement: .topBarLeading) {
                     Button { activeSheet = .settings } label: {
                         Image(systemName: "gearshape")
+                            .foregroundStyle(Color.appSecondary)
                     }
                     Button { activeSheet = .about } label: {
                         Image(systemName: "info.circle")
+                            .foregroundStyle(Color.appSecondary)
                     }
                 }
             }
@@ -78,14 +81,6 @@ struct HomeView: View {
         .onAppear {
             vm.refreshRules()
             vm.refreshShieldStates()
-            // Slightly reduce the large title font from the default 34pt.
-            let appearance = UINavigationBarAppearance()
-            appearance.configureWithDefaultBackground()
-            appearance.largeTitleTextAttributes = [
-                .font: UIFont.systemFont(ofSize: 28, weight: .bold)
-            ]
-            UINavigationBar.appearance().scrollEdgeAppearance = appearance
-            UINavigationBar.appearance().standardAppearance  = appearance
         }
     }
 
@@ -121,8 +116,11 @@ struct HomeView: View {
                     onToggleTap: { vm.handleToggleTap(for: rule) },
                     onOptions: { activeSheet = .options(rule) }
                 )
+                .surfaceRow()
+                .listRowSeparatorTint(Color.appBorder)
             }
         }
+        .inkBackground()
         .listStyle(.insetGrouped)
         .safeAreaInset(edge: .top) { Color.clear.frame(height: 6) }
     }
@@ -130,19 +128,51 @@ struct HomeView: View {
     // MARK: - Empty state
 
     private var emptyState: some View {
-        VStack(spacing: 20) {
-            Image(systemName: "lock.shield")
-                .font(.system(size: 64))
-                .foregroundColor(.blue)
-            Text("No Rules Yet")
-                .font(.title2.bold())
-            Text("Tap + to add your first blocking rule.")
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-            Button("Add Rule") { activeSheet = .builder }
-                .buttonStyle(.borderedProminent)
+        VStack(spacing: 24) {
+            Spacer()
+
+            ZStack {
+                Circle()
+                    .fill(Color.appAccentFill)
+                    .frame(width: 96, height: 96)
+                Image(systemName: "lock.shield")
+                    .font(.system(size: 42, weight: .light))
+                    .foregroundStyle(Color.appAccent)
+            }
+            .accentGlow(radius: 20)
+
+            VStack(spacing: 8) {
+                Text("No Rules Yet")
+                    .font(.title2.bold())
+                    .foregroundStyle(Color.appPrimary)
+                Text("Add your first rule to start blocking apps.")
+                    .font(.subheadline)
+                    .foregroundStyle(Color.appSecondary)
+                    .multilineTextAlignment(.center)
+            }
+
+            Button {
+                activeSheet = .builder
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "plus")
+                        .font(.subheadline.bold())
+                    Text("Add Rule")
+                        .font(.subheadline.bold())
+                }
+                .foregroundStyle(Color.appOnAccent)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 12)
+                .background(Color.appAccent)
+                .clipShape(Capsule())
+            }
+            .buttonStyle(.plain)
+
+            Spacer()
         }
         .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.appBackground)
     }
 }
 
@@ -154,22 +184,21 @@ private struct AboutFrictionView: View {
 
     private struct Feature {
         let icon: String
-        let color: Color
         let title: String
         let body: String
     }
 
     private let features: [Feature] = [
-        Feature(icon: "lock.shield.fill",     color: .blue,
+        Feature(icon: "lock.shield.fill",
                 title: "You choose what's blocked",
                 body:  "Pick any app and set the times or conditions when it's off-limits."),
-        Feature(icon: "brain.head.profile",   color: .purple,
+        Feature(icon: "brain.head.profile",
                 title: "Earn access, don't just tap past",
                 body:  "Every unlock requires a challenge: maths, steps, a wait, or a written reason."),
-        Feature(icon: "timer",                color: .orange,
+        Feature(icon: "timer",
                 title: "Sessions keep it honest",
                 body:  "After unlocking, the app re-locks automatically, even while you're in it."),
-        Feature(icon: "arrow.up.right.circle.fill", color: .red,
+        Feature(icon: "arrow.up.right.circle.fill",
                 title: "Escalation raises the stakes",
                 body:  "Unlock too many times in a row and each challenge gets harder."),
     ]
@@ -177,64 +206,96 @@ private struct AboutFrictionView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 32) {
+                VStack(spacing: 36) {
                     header
                     featuresBlock
                     footer
                 }
                 .padding(.horizontal, 24)
-                .padding(.vertical, 16)
+                .padding(.vertical, 24)
             }
+            .background(Color.appBackground)
+            .scrollContentBackground(.hidden)
             .navigationTitle("About Friction")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
+                        .foregroundStyle(Color.appAccent)
                 }
             }
         }
     }
 
     private var header: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "lock.shield.fill")
-                .font(.system(size: 56))
-                .foregroundStyle(.blue)
+        VStack(spacing: 16) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(Color.appAccentFill)
+                    .frame(width: 80, height: 80)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 22, style: .continuous)
+                            .stroke(Color.appAccent.opacity(0.3), lineWidth: 1)
+                    )
+                Image(systemName: "lock.shield.fill")
+                    .font(.system(size: 36))
+                    .foregroundStyle(Color.appAccent)
+            }
+            .accentGlow(radius: 16)
+
             Text("Friction")
-                .font(.largeTitle.bold())
+                .font(.title.bold())
+                .foregroundStyle(Color.appPrimary)
+
             Text("Make phone use intentional, not automatic.")
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+                .foregroundStyle(Color.appSecondary)
                 .multilineTextAlignment(.center)
         }
         .padding(.top, 8)
     }
 
     private var featuresBlock: some View {
-        VStack(spacing: 16) {
-            ForEach(features, id: \.title) { f in
+        VStack(spacing: 0) {
+            ForEach(Array(features.enumerated()), id: \.element.title) { index, feature in
                 HStack(alignment: .top, spacing: 16) {
-                    Image(systemName: f.icon)
-                        .font(.title2)
-                        .foregroundColor(f.color)
-                        .frame(width: 36)
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(Color.appAccentFill)
+                            .frame(width: 38, height: 38)
+                        Image(systemName: feature.icon)
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundStyle(Color.appAccent)
+                    }
+                    .accentGlow(radius: 6)
+
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(f.title)
+                        Text(feature.title)
                             .font(.subheadline.bold())
-                        Text(f.body)
+                            .foregroundStyle(Color.appPrimary)
+                        Text(feature.body)
                             .font(.subheadline)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(Color.appSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 14)
+
+                if index < features.count - 1 {
+                    Divider()
+                        .background(Color.white.opacity(0.06))
+                }
             }
         }
+        .padding(16)
+        .glassCard(cornerRadius: 14)
     }
 
     private var footer: some View {
         Text("Everything stays on your device. No accounts, no tracking.")
             .font(.caption)
-            .foregroundColor(.secondary.opacity(0.6))
+            .foregroundStyle(Color.appTertiary)
             .multilineTextAlignment(.center)
             .padding(.bottom, 8)
     }

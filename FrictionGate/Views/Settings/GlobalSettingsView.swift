@@ -5,7 +5,6 @@ struct GlobalSettingsView: View {
     @ObservedObject var vm: WakeUpViewModel
     @Environment(\.dismiss) private var dismiss
 
-    // Local bindings backed by WakeUpViewModel computed properties
     @State private var detectionEnabled: Bool = false
     @State private var idleHours:        Int  = 6
     @State private var windowStartDate:  Date = dc(hour: 5).asDate
@@ -20,6 +19,7 @@ struct GlobalSettingsView: View {
                 sleepSection
                 statusSection
             }
+            .inkBackground()
             .listStyle(.insetGrouped)
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
@@ -27,6 +27,7 @@ struct GlobalSettingsView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
                         .bold()
+                        .foregroundStyle(Color.appAccent)
                 }
             }
             .onAppear { loadFromVM() }
@@ -38,14 +39,13 @@ struct GlobalSettingsView: View {
     private var wakeUpSection: some View {
         Section {
             Toggle("Enable wake-up detection", isOn: $detectionEnabled)
-                .onChange(of: detectionEnabled) { val in
-                    vm.detectionEnabled = val
-                }
+                .onChange(of: detectionEnabled) { val in vm.detectionEnabled = val }
 
             if detectionEnabled {
                 Stepper("Idle threshold: \(idleHours) hr\(idleHours == 1 ? "" : "s")",
                         value: $idleHours, in: 1...12)
                     .onChange(of: idleHours) { val in vm.idleHours = val }
+                    .foregroundStyle(Color.appPrimary)
 
                 DatePicker("Window start",
                            selection: $windowStartDate,
@@ -65,9 +65,13 @@ struct GlobalSettingsView: View {
             }
         } header: {
             Label("Wake-Up Detection", systemImage: "sunrise")
+                .foregroundStyle(Color.appSecondary)
         } footer: {
             Text("Friction detects wake-up when the phone has been idle for the threshold hours and you open the app within the detection window.")
+                .foregroundStyle(Color.appTertiary)
         }
+        .surfaceRow()
+        .listRowSeparatorTint(Color.appBorder)
     }
 
     private var sleepSection: some View {
@@ -93,23 +97,28 @@ struct GlobalSettingsView: View {
             }
         } header: {
             Label("Sleep Time", systemImage: "moon.zzz")
+                .foregroundStyle(Color.appSecondary)
         } footer: {
-            Text("Used by \"Before Sleep\" blocking conditions. Rules with that condition will apply a shield for the configured duration before this time each night.")
+            Text("Used by \"Before Sleep\" blocking conditions.")
+                .foregroundStyle(Color.appTertiary)
         }
+        .surfaceRow()
+        .listRowSeparatorTint(Color.appBorder)
     }
 
     private var statusSection: some View {
         Section {
-            HStack {
+            HStack(spacing: 12) {
                 Image(systemName: "info.circle")
-                    .foregroundColor(.blue)
+                    .foregroundStyle(Color.appAccent)
                 Text(vm.statusDescription)
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(Color.appSecondary)
             }
         } header: {
-            Text("Status")
+            Text("Status").foregroundStyle(Color.appSecondary)
         }
+        .surfaceRow()
     }
 
     // MARK: - Load from VM
@@ -121,16 +130,13 @@ struct GlobalSettingsView: View {
         windowEndDate    = vm.windowEnd.asDate
 
         if let sleep = vm.sleepTime {
-            hasSleepTime   = true
-            sleepTimeDate  = sleep.asDate
+            hasSleepTime  = true
+            sleepTimeDate = sleep.asDate
         } else {
-            hasSleepTime   = false
+            hasSleepTime = false
         }
     }
 }
-
-// MARK: - DateComponents convenience (file-private factory only)
-// `DateComponents.asDate` is defined module-wide in Extensions/Date+Helpers.swift.
 
 private func dc(hour: Int, minute: Int = 0) -> DateComponents {
     DateComponents(hour: hour, minute: minute)

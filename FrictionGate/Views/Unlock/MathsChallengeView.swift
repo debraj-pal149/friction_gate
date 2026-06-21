@@ -8,16 +8,14 @@ struct MathsChallengeView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 32) {
-                Spacer(minLength: 20)
+                Spacer(minLength: 24)
 
-                // Progress
                 if vm.mathsProblems.count > 1 {
                     Text(vm.mathsProgress)
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(Color.appSecondary)
                 }
 
-                // Problem card
                 if let problem = vm.mathsProblems[safe: vm.mathsIndex] {
                     VStack(spacing: 12) {
                         Text(problem.question)
@@ -26,37 +24,40 @@ struct MathsChallengeView: View {
                             .multilineTextAlignment(.center)
                             .minimumScaleFactor(0.6)
                             .lineLimit(2)
+                            .foregroundStyle(Color.appPrimary)
                         Text("= ?")
                             .font(.system(size: 32, weight: .medium))
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(Color.appSecondary)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(32)
-                    .background(Color(.secondarySystemGroupedBackground))
-                    .clipShape(RoundedRectangle(cornerRadius: 20))
+                    .glassCard(cornerRadius: 20)
                     .padding(.horizontal)
                 }
 
-                // Answer field
-                VStack(spacing: 12) {
+                VStack(spacing: 14) {
                     TextField("Your answer", text: $vm.mathsAnswer)
                         .keyboardType(.numberPad)
                         .multilineTextAlignment(.center)
                         .font(.title.bold())
+                        .foregroundStyle(Color.appPrimary)
                         .padding()
-                        .background(Color(.secondarySystemGroupedBackground))
+                        .background(Color.appSurface3)
                         .clipShape(RoundedRectangle(cornerRadius: 14))
                         .focused($answerFocused)
                         .overlay(
                             RoundedRectangle(cornerRadius: 14)
-                                .stroke(vm.mathsAnswerWrong ? Color.red : Color.clear, lineWidth: 2)
+                                .stroke(
+                                    vm.mathsAnswerWrong ? Color.appDestructive : Color.appBorder,
+                                    lineWidth: vm.mathsAnswerWrong ? 2 : 1
+                                )
                         )
                         .padding(.horizontal)
 
                     if vm.mathsAnswerWrong {
                         Text("Incorrect, try again")
                             .font(.footnote.bold())
-                            .foregroundColor(.red)
+                            .foregroundStyle(Color.appDestructive)
                     }
 
                     Button {
@@ -66,16 +67,20 @@ struct MathsChallengeView: View {
                             .frame(maxWidth: .infinity)
                             .padding()
                             .font(.headline)
+                            .foregroundStyle(Color.appOnAccent)
                     }
-                    .buttonStyle(.borderedProminent)
+                    .background(Color.appAccent)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
                     .padding(.horizontal)
                     .disabled(vm.mathsAnswer.trimmingCharacters(in: .whitespaces).isEmpty)
+                    .opacity(vm.mathsAnswer.trimmingCharacters(in: .whitespaces).isEmpty ? 0.4 : 1)
                 }
 
                 Spacer()
             }
             .padding(.vertical)
         }
+        .background(Color.appBackground)
         .onAppear { answerFocused = true }
     }
 }

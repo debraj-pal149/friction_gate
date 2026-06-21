@@ -7,38 +7,41 @@ struct TypeSentenceView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 28) {
-                Spacer(minLength: 20)
+                Spacer(minLength: 24)
 
-                VStack(spacing: 8) {
-                    Image(systemName: "keyboard")
-                        .font(.system(size: 44))
-                        .foregroundColor(.blue)
+                VStack(spacing: 10) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.appAccentFill)
+                            .frame(width: 64, height: 64)
+                        Image(systemName: "keyboard")
+                            .font(.system(size: 28))
+                            .foregroundStyle(Color.appAccent)
+                    }
                     Text("Type the sentence below exactly")
                         .font(.headline)
+                        .foregroundStyle(Color.appPrimary)
                     Text("Paste is disabled. Every character must be typed.")
                         .font(.footnote)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(Color.appSecondary)
                         .multilineTextAlignment(.center)
                 }
 
-                // Target sentence card
                 Text(vm.requiredSentence)
                     .font(.body)
                     .multilineTextAlignment(.center)
+                    .foregroundStyle(Color.appPrimary)
                     .padding()
                     .frame(maxWidth: .infinity)
-                    .background(Color(.secondarySystemGroupedBackground))
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .glassCard(cornerRadius: 14)
                     .padding(.horizontal)
 
-                // Character-by-character match indicator
                 characterPreview
 
-                // Paste-blocking text field
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Your input")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(Color.appSecondary)
                         .padding(.horizontal, 20)
 
                     PasteBlockingTextField(
@@ -48,11 +51,11 @@ struct TypeSentenceView: View {
                     )
                     .frame(height: 44)
                     .padding(.horizontal)
-                    .background(Color(.secondarySystemGroupedBackground))
+                    .background(Color.appSurface3)
                     .clipShape(RoundedRectangle(cornerRadius: 14))
                     .overlay(
                         RoundedRectangle(cornerRadius: 14)
-                            .stroke(borderColor, lineWidth: 2)
+                            .stroke(borderColor, lineWidth: borderColor == Color.clear ? 0 : 1.5)
                     )
                     .padding(.horizontal)
                 }
@@ -64,8 +67,10 @@ struct TypeSentenceView: View {
                         .frame(maxWidth: .infinity)
                         .padding()
                         .font(.headline)
+                        .foregroundStyle(vm.sentenceMatchesRequired ? Color.appOnAccent : Color.appTertiary)
                 }
-                .buttonStyle(.borderedProminent)
+                .background(vm.sentenceMatchesRequired ? Color.appAccent : Color.appSurface2)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
                 .disabled(!vm.sentenceMatchesRequired)
                 .padding(.horizontal)
 
@@ -73,6 +78,7 @@ struct TypeSentenceView: View {
             }
             .padding(.vertical)
         }
+        .background(Color.appBackground)
     }
 
     // MARK: - Character preview
@@ -90,9 +96,9 @@ struct TypeSentenceView: View {
 
                     Text(String(reqChar))
                         .font(.system(.caption, design: .monospaced))
-                        .foregroundColor(
-                            typedChar == nil ? .secondary
-                            : isMatch ? .green : .red
+                        .foregroundStyle(
+                            typedChar == nil ? Color.appTertiary
+                            : isMatch ? Color.appSuccess : Color.appDestructive
                         )
                         .padding(.vertical, 2)
                         .frame(minWidth: 10)
@@ -105,6 +111,6 @@ struct TypeSentenceView: View {
 
     private var borderColor: Color {
         if vm.typedSentence.isEmpty { return Color.clear }
-        return vm.sentenceMatchesRequired ? .green : .blue
+        return vm.sentenceMatchesRequired ? Color.appSuccess : Color.appAccent
     }
 }

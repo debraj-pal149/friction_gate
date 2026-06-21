@@ -11,37 +11,38 @@ struct RuleRowView: View {
     var body: some View {
         HStack(spacing: 14) {
             AppIconView(appName: rule.appDisplayName, bundleID: rule.appBundleID, size: 46)
-                .opacity(isShielded ? 1 : 0.5)
+                .opacity(isShielded ? 1 : 0.45)
 
             info
             Spacer(minLength: 8)
             controls
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 6)
     }
 
     // MARK: - Info column
 
     private var info: some View {
-        VStack(alignment: .leading, spacing: 3) {
+        VStack(alignment: .leading, spacing: 4) {
             Text(rule.appDisplayName)
                 .font(.headline)
+                .foregroundStyle(Color.appPrimary)
 
             if let condition = rule.conditions.first {
                 Text(condition.displayDescription)
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(Color.appSecondary)
                     .lineLimit(1)
             }
 
             HStack(spacing: 6) {
                 if isShielded {
-                    badge("Blocked", color: .red)
+                    ThemeBadge(text: "Blocked", color: Color.appAccent)
                 } else {
-                    badge("Unlocked", color: .green)
+                    ThemeBadge(text: "Unlocked", color: Color.appSecondary)
                 }
                 if !rule.challenges.isEmpty {
-                    badge(rule.challenges[0].displayName, color: .blue)
+                    ThemeBadge(text: rule.challenges[0].displayName, color: Color.appAccentBright)
                 }
             }
         }
@@ -51,8 +52,6 @@ struct RuleRowView: View {
 
     private var controls: some View {
         VStack(alignment: .trailing, spacing: 12) {
-            // Toggle reflects live shield state; tapping triggers the
-            // challenge/confirmation flow, not a direct boolean flip.
             Toggle("", isOn: Binding(
                 get: { isShielded },
                 set: { _ in onToggleTap() }
@@ -61,22 +60,10 @@ struct RuleRowView: View {
 
             Button { onOptions() } label: {
                 Image(systemName: "ellipsis.circle")
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(Color.appTertiary)
                     .font(.title3)
             }
             .buttonStyle(.plain)
         }
-    }
-
-    // MARK: - Badge helper
-
-    private func badge(_ text: String, color: Color) -> some View {
-        Text(text)
-            .font(.caption2.bold())
-            .foregroundColor(color)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(color.opacity(0.12))
-            .clipShape(Capsule())
     }
 }

@@ -61,24 +61,34 @@ class ShieldConfigurationExtension: ShieldConfigurationDataSource {
 
     // MARK: - Configuration builder
 
+    // MARK: - Design tokens
+    //
+    // To change the shield accent color, update electricBlue below.
+    // It matches Color.appAccent in the main app's Color+Theme.swift.
+    private static let electricBlue = UIColor(red: 16/255, green: 64/255, blue: 232/255, alpha: 1)
+    private static let shieldBg     = UIColor(white: 0.98, alpha: 0.96)
+    private static let nearBlack    = UIColor(red: 13/255, green: 13/255, blue: 20/255,  alpha: 1)
+    private static let mediumGrey   = UIColor(red: 94/255, green: 94/255, blue: 114/255, alpha: 1)
+
     private func makeConfiguration(appName: String) -> ShieldConfiguration {
         ShieldConfiguration(
             backgroundBlurStyle: .systemUltraThinMaterial,
-            backgroundColor:     UIColor.systemBackground.withAlphaComponent(0.95),
-            icon:                UIImage(systemName: "lock.shield.fill"),
+            backgroundColor:     Self.shieldBg,
+            icon:                UIImage(systemName: "lock.shield.fill")?
+                                     .withTintColor(Self.electricBlue, renderingMode: .alwaysOriginal),
             title: ShieldConfiguration.Label(
                 text:  appName,
-                color: .label
+                color: Self.nearBlack
             ),
             subtitle: ShieldConfiguration.Label(
                 text:  "Open Friction to complete a challenge and unlock this app.",
-                color: .secondaryLabel
+                color: Self.mediumGrey
             ),
             primaryButtonLabel: ShieldConfiguration.Label(
                 text:  "Switch to Friction",
                 color: .white
             ),
-            primaryButtonBackgroundColor: UIColor.systemBlue
+            primaryButtonBackgroundColor: Self.electricBlue
         )
     }
 

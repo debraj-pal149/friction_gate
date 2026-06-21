@@ -7,18 +7,24 @@ struct WriteReasonView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 28) {
-                Spacer(minLength: 20)
+                Spacer(minLength: 24)
 
-                VStack(spacing: 8) {
-                    Image(systemName: "pencil.and.list.clipboard")
-                        .font(.system(size: 44))
-                        .foregroundColor(.blue)
+                VStack(spacing: 10) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.appAccentFill)
+                            .frame(width: 64, height: 64)
+                        Image(systemName: "pencil.and.list.clipboard")
+                            .font(.system(size: 26))
+                            .foregroundStyle(Color.appAccent)
+                    }
                     Text("Why do you want to open this app?")
                         .font(.headline)
+                        .foregroundStyle(Color.appPrimary)
                         .multilineTextAlignment(.center)
                     Text("Write at least a sentence or two. No one will read it. This is just for you.")
                         .font(.footnote)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(Color.appSecondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
                 }
@@ -26,11 +32,16 @@ struct WriteReasonView: View {
                 TextEditor(text: $vm.writtenReason)
                     .frame(minHeight: 160)
                     .padding(10)
-                    .background(Color(.secondarySystemGroupedBackground))
+                    .foregroundStyle(Color.appPrimary)
+                    .scrollContentBackground(.hidden)
+                    .background(Color.appSurface3)
                     .clipShape(RoundedRectangle(cornerRadius: 14))
                     .overlay(
                         RoundedRectangle(cornerRadius: 14)
-                            .stroke(vm.reasonIsValid ? Color.green : Color(.systemFill), lineWidth: 2)
+                            .stroke(
+                                vm.reasonIsValid ? Color.appSuccess : Color.appBorder,
+                                lineWidth: vm.reasonIsValid ? 1.5 : 1
+                            )
                     )
                     .padding(.horizontal)
 
@@ -41,7 +52,7 @@ struct WriteReasonView: View {
                             : "\(vm.writtenReason.trimmingCharacters(in: .whitespacesAndNewlines).count) / \(UnlockViewModel.minimumReasonLength) characters"
                     )
                     .font(.caption)
-                    .foregroundColor(vm.reasonIsValid ? .green : .secondary)
+                    .foregroundStyle(vm.reasonIsValid ? Color.appSuccess : Color.appSecondary)
                     Spacer()
                 }
                 .padding(.horizontal)
@@ -53,8 +64,10 @@ struct WriteReasonView: View {
                         .frame(maxWidth: .infinity)
                         .padding()
                         .font(.headline)
+                        .foregroundStyle(vm.reasonIsValid ? Color.appOnAccent : Color.appTertiary)
                 }
-                .buttonStyle(.borderedProminent)
+                .background(vm.reasonIsValid ? Color.appAccent : Color.appSurface2)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
                 .disabled(!vm.reasonIsValid)
                 .padding(.horizontal)
 
@@ -62,5 +75,6 @@ struct WriteReasonView: View {
             }
             .padding(.vertical)
         }
+        .background(Color.appBackground)
     }
 }
