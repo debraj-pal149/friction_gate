@@ -19,11 +19,16 @@ final class HomeViewModel: ObservableObject {
     @Published var rules: [Rule] = []
 
     /// Which rule IDs currently have an active ManagedSettings shield.
-    /// Refreshed on every foreground and after every lock/unlock action.
+    /// Used for the "Blocked / Unlocked" badge — NOT for the toggle.
     @Published var shieldedRuleIDs: Set<UUID> = []
 
-    /// Set when the user taps a toggle to UNLOCK a blocked app.
-    /// HomeView presents UnlockView for this rule.
+    /// Set when the user taps a toggle to DISABLE an active rule.
+    /// HomeView presents UnlockView so the user must complete the challenge.
+    /// On dismiss, if the challenge succeeded, the rule is deactivated.
+    @Published var pendingDisableFromToggle: Rule? = nil
+
+    /// Set when the user taps a toggle to UNLOCK a currently-blocked app
+    /// outside of the disable-rule flow (legacy direct-unlock path).
     @Published var pendingUnlockFromToggle: Rule? = nil
 
     /// Set when the user tries to RE-LOCK an app while a session is still active.
@@ -73,26 +78,40 @@ final class HomeViewModel: ObservableObject {
 
     // MARK: - Toggle tap handler
     //
-    // The toggle reflects WHETHER the app is currently blocked, not whether
-    // the rule is enabled.  Tapping it therefore means:
-    //   • currently blocked   → user wants to unlock  → challenge required
-    //   • currently unblocked → user wants to re-lock → immediate or confirmed
+    // The toggle reflects WHETHER THE RULE IS ACTIVE (not paused / disabled),
+    // regardless of whether the app is currently shielded.
+    //
+    //   • rule active   → user wants to DISABLE it → challenge required
+    //   • rule inactive → user wants to RE-ENABLE  → immediate, no challenge
 
     func handleToggleTap(for rule: Rule) {
-        if shieldedRuleIDs.contains(rule.id) {
-            // App is blocked → present unlock challenge
-            pendingUnlockFromToggle = rule
+        if rule.isActive {
+            // User wants to disable the rule — require the rule's challenge first.
+            pendingDisableFromToggle = rule
         } else {
-            // App is unblocked → user wants to lock it
-            if let remaining = remainingSessionMinutes(for: rule.id) {
-                // A session is still active — show friendly confirmation
-                relockMessage = buildRelockMessage(rule: rule, remainingMinutes: remaining)
-                pendingRelockRule = rule
-            } else {
-                // No active session → re-apply shield immediately
-                applyRelockNow(rule)
-            }
+            // Rule is off — re-enable it immediately.
+            enableRule(rule)
         }
+    }
+
+    /// Called by HomeView after the "disable" UnlockView dismisses.
+    /// If the challenge was completed (shield was removed), we deactivate the rule.
+    func didDismissDisableChallenge() {
+        guard let rule = pendingDisableFromToggle else { return }
+        pendingDisableFromToggle = nil
+        refreshShieldStates()
+
+        // The challenge succeeded when UnlockViewModel removed the shield.
+        // (Cancelled challenge leaves the shield in place.)
+        if !shieldedRuleIDs.contains(rule.id) {
+            deactivateRule(rule)
+        }
+    }
+
+    /// Called by HomeView after the legacy UnlockView dismisses.
+    func didDismissUnlock() {
+        pendingUnlockFromToggle = nil
+        refreshShieldStates()
     }
 
     /// Called after the user confirms early re-lock via the alert.
@@ -106,10 +125,34 @@ final class HomeViewModel: ObservableObject {
         pendingRelockRule = nil
     }
 
-    /// Called by HomeView after UnlockView dismisses so the toggle updates.
-    func didDismissUnlock() {
-        pendingUnlockFromToggle = nil
+    // MARK: - Enable / disable helpers
+
+    private func enableRule(_ rule: Rule) {
+        guard var updated = ruleStore.rules.first(where: { $0.id == rule.id }) else { return }
+        updated.isActive = true
+        ruleStore.update(updated)
+        // Re-register DeviceActivity schedules.
+        deviceActivityService.registerSchedules(for: updated)
+        // Apply shield immediately for unconditional (always-block) rules.
+        if updated.conditions.isEmpty {
+            blockingService.applyShield(for: updated)
+            shieldedRuleIDs.insert(updated.id)
+        }
         refreshShieldStates()
+    }
+
+    private func deactivateRule(_ rule: Rule) {
+        guard var updated = ruleStore.rules.first(where: { $0.id == rule.id }) else { return }
+        updated.isActive = false
+        ruleStore.update(updated)
+        // Remove the live shield in case it is still on for any reason.
+        blockingService.removeShield(for: updated)
+        shieldedRuleIDs.remove(updated.id)
+        // Cancel session relock timer and all DeviceActivity schedules.
+        let shared = UserDefaults(suiteName: "group.com.debrajpal.frictiongate")
+        shared?.removeObject(forKey: "session_expires_\(updated.id.uuidString)")
+        deviceActivityService.cancelSessionRelock(for: updated.id)
+        deviceActivityService.removeSchedules(for: updated)
     }
 
     // MARK: - Private helpers

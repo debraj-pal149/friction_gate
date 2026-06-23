@@ -187,6 +187,14 @@ final class RuleStore: ObservableObject {
     // MARK: - Rules CRUD
 
     func add(_ rule: Rule) {
+        // Archive the FamilyActivitySelection into the cache *before* calling
+        // save(), so that persistSelectionMap() includes this new rule's data.
+        // Without this step, load() would find no selection for the new rule
+        // and appToken would be nil after any refresh.
+        if let sel = rule.activitySelection,
+           let encoded = try? PropertyListEncoder().encode(sel) {
+            cachedSelectionMap[rule.id.uuidString] = encoded
+        }
         rules.append(rule)
         save()
     }

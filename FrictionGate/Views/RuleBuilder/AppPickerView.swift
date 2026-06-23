@@ -1,14 +1,11 @@
 import SwiftUI
 import FamilyControls
+import ManagedSettings
 
 struct AppPickerView: View {
 
     @ObservedObject var vm: RuleBuilderViewModel
     @EnvironmentObject private var appState: AppState
-
-    private var hasSelection: Bool {
-        !vm.activitySelection.applicationTokens.isEmpty
-    }
 
     var body: some View {
         if appState.familyControlsStatus == .approved {
@@ -21,67 +18,12 @@ struct AppPickerView: View {
     // MARK: - Picker
 
     private var pickerContent: some View {
-        VStack(spacing: 0) {
-            FamilyActivityPicker(
-                headerText: "Select the app you want to block",
-                footerText: "One app per rule.",
-                selection: interceptedBinding
-            )
-
-            if hasSelection {
-                Divider().background(Color.appBorder)
-                confirmationStrip
-            }
-        }
-    }
-
-    private var interceptedBinding: Binding<FamilyActivitySelection> {
-        Binding(
-            get: { vm.activitySelection },
-            set: { new in
-                vm.activitySelection = new
-                if let app = new.applications.first {
-                    if let name = app.localizedDisplayName, !name.isEmpty {
-                        vm.appDisplayName = name
-                    }
-                    if let bid = app.bundleIdentifier, !bid.isEmpty {
-                        vm.appBundleID = bid
-                    }
-                }
-            }
+        FamilyActivityPicker(
+            headerText: "Select the app you want to block",
+            footerText: "One app per rule.",
+            selection: $vm.activitySelection
         )
-    }
-
-    // MARK: - Confirmation strip
-
-    private var confirmationStrip: some View {
-        HStack(spacing: 14) {
-            AppIconView(appName: vm.appDisplayName.isEmpty ? "?" : vm.appDisplayName,
-                        bundleID: vm.appBundleID, size: 44)
-
-            VStack(alignment: .leading, spacing: 2) {
-                TextField("App name (e.g. Instagram)", text: $vm.appDisplayName)
-                    .font(.headline)
-                    .foregroundStyle(Color.appPrimary)
-                    .submitLabel(.done)
-                Text(vm.appDisplayName.isEmpty
-                     ? "Type the app name above, then tap Next"
-                     : "Tap Next to set blocking conditions")
-                    .font(.caption)
-                    .foregroundStyle(Color.appSecondary)
-            }
-
-            Spacer()
-
-            Image(systemName: vm.appDisplayName.isEmpty ? "pencil.circle" : "checkmark.circle.fill")
-                .foregroundStyle(vm.appDisplayName.isEmpty
-                                 ? Color.appWarning
-                                 : Color.appSuccess)
-                .font(.title3)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
-        .background(Color.appSurface)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // MARK: - Auth required fallback

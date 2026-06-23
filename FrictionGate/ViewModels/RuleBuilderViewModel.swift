@@ -1,6 +1,7 @@
 import Foundation
 import Combine
 import FamilyControls
+import ManagedSettings
 
 // MARK: - Builder step
 
@@ -30,12 +31,19 @@ final class RuleBuilderViewModel: ObservableObject {
     // MARK: - App selection
     //
     // `activitySelection` is bound directly to `FamilyActivityPicker` in the View.
-    // `appDisplayName` is auto-populated from the picker selection.
-    // `appBundleID` is populated from `Application.bundleIdentifier` if available.
+    // `appDisplayName` is now an **optional user-defined nickname** — the real name
+    // and icon come from `Label(application)` using the OS token.
+    // `appBundleID` is kept for any string-based lookups but may be nil on device.
 
     @Published var activitySelection: FamilyActivitySelection = FamilyActivitySelection()
-    @Published var appDisplayName: String = ""
+    @Published var appDisplayName: String = ""   // optional nickname
     @Published var appBundleID: String? = nil
+
+    /// The first selected `ApplicationToken` — use with `Label(token)` in SwiftUI
+    /// for privacy-compliant OS-rendered icon and name display.
+    var applicationToken: ApplicationToken? {
+        activitySelection.applicationTokens.first
+    }
 
     // MARK: - Block conditions
 
@@ -63,9 +71,10 @@ final class RuleBuilderViewModel: ObservableObject {
 
     // MARK: - Validation
 
+    // An app is selected as soon as the picker returns a token.
+    // appDisplayName (nickname) is no longer required to advance.
     var isAppSelected: Bool {
-        !activitySelection.applicationTokens.isEmpty &&
-        !appDisplayName.trimmingCharacters(in: .whitespaces).isEmpty
+        !activitySelection.applicationTokens.isEmpty
     }
 
     var hasConditions:  Bool { !conditions.isEmpty }
@@ -178,6 +187,13 @@ final class RuleBuilderViewModel: ObservableObject {
 
         // Register DeviceActivity schedules for time-based conditions.
         deviceActivityService.registerSchedules(for: rule)
+
+        // For unconditional rules (no time/wake/sleep/limit conditions) the shield
+        // should be active immediately.  Write the flag to App Group UserDefaults so
+        // HomeViewModel.refreshShieldStates() sees the correct state right away.
+        if rule.conditions.isEmpty {
+            BlockingService.shared.applyShield(for: rule)
+        }
 
         reset()
     }

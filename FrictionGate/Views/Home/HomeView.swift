@@ -58,9 +58,23 @@ struct HomeView: View {
                     }
                 }
             }
-            .sheet(item: $activeSheet) { sheet in
+            .sheet(item: $activeSheet, onDismiss: {
+                // Refresh after the builder sheet closes so any newly-created
+                // rule's shield state is reflected in the toggle immediately.
+                vm.refreshRules()
+                vm.refreshShieldStates()
+            }) { sheet in
                 sheetContent(for: sheet)
             }
+            // Disable-rule flow: user tapped toggle to turn OFF an active rule.
+            // They must complete the rule's challenge first.  On dismiss,
+            // didDismissDisableChallenge() checks if the challenge succeeded and
+            // deactivates the rule only if it did.
+            .sheet(item: $vm.pendingDisableFromToggle) { rule in
+                UnlockView(rule: rule, ruleStore: ruleStore)
+                    .onDisappear { vm.didDismissDisableChallenge() }
+            }
+            // Legacy direct-unlock sheet (used elsewhere if needed).
             .sheet(item: $vm.pendingUnlockFromToggle) { rule in
                 UnlockView(rule: rule, ruleStore: ruleStore)
                     .onDisappear { vm.didDismissUnlock() }
@@ -112,6 +126,7 @@ struct HomeView: View {
             ForEach(vm.rules) { rule in
                 RuleRowView(
                     rule: rule,
+                    isRuleActive: rule.isActive,
                     isShielded: vm.shieldedRuleIDs.contains(rule.id),
                     onToggleTap: { vm.handleToggleTap(for: rule) },
                     onOptions: { activeSheet = .options(rule) }

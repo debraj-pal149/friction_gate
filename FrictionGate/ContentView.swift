@@ -2,12 +2,12 @@ import SwiftUI
 
 /// Root view of the application.
 ///
-/// Responsibilities:
-/// - Shows `PermissionPrimerView` on first launch (before Family Controls dialog).
-/// - Renders `HomeView` backed by the shared `HomeViewModel` from the environment.
-/// - Presents `UnlockView` as a `.fullScreenCover` when `AppState.pendingUnlockRule`
-///   is set — either from the `frictiongate://unlock` URL scheme or from the
-///   `ShieldActionExtension` via the App Group `UserDefaults` handoff.
+/// First-run flow (single fullScreenCover, sequenced by AppState flags):
+///   1. OnboardingView  — shown once ever; "Let's Go" sets `hasShownOnboarding`
+///   2. PermissionPrimerView — shown until Screen Time permission is granted
+///   3. HomeView — normal app
+///
+/// The unlock cover sits on top of everything and is independent of the flow.
 struct ContentView: View {
 
     @EnvironmentObject private var appState:  AppState
@@ -20,26 +20,31 @@ struct ContentView: View {
                 UnlockView(rule: rule, ruleStore: ruleStore)
                     .onDisappear { homeVM.refreshShieldStates() }
             }
-            .fullScreenCover(isPresented: shouldShowPrimer) {
-                PermissionPrimerView()
+            // Single cover handles both onboarding and primer so they chain
+            // reliably without stacking multiple fullScreenCovers.
+            .fullScreenCover(isPresented: shouldShowFirstRunFlow) {
+                if !appState.hasShownOnboarding {
+                    OnboardingView()
+                } else {
+                    PermissionPrimerView()
+                }
             }
-            // ── Design System ───────────────────────────────────────────────
-            // Force dark mode so the Ink palette is always correct regardless
-            // of device light/dark setting.
             .preferredColorScheme(.light)
             .tint(Color.appAccent)
     }
 
-    /// Show the primer when it hasn't been shown yet AND permission hasn't been
-    /// granted yet.  If the user already approved (e.g. on a reinstall where
-    /// UserDefaults was cleared but the system already granted), skip the primer.
-    private var shouldShowPrimer: Binding<Bool> {
+    /// True when either the onboarding OR the permission primer still needs to be shown.
+    /// The cover content switches between the two based on `hasShownOnboarding`.
+    private var shouldShowFirstRunFlow: Binding<Bool> {
         Binding(
             get: {
-                !appState.hasShownPermissionPrimer &&
-                appState.familyControlsStatus != .approved
+                // Show onboarding if never seen.
+                if !appState.hasShownOnboarding { return true }
+                // After onboarding, show primer until permission is granted.
+                return !appState.hasShownPermissionPrimer &&
+                       appState.familyControlsStatus != .approved
             },
-            set: { _ in }   // dismiss is handled by PermissionPrimerView itself
+            set: { _ in }   // dismissal is controlled by the child views themselves
         )
     }
 }

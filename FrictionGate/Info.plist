@@ -2,20 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>NSMotionUsageDescription</key>
-	<string>Friction uses motion data as a fallback step counter.</string>
-	<key>NSHealthUpdateUsageDescription</key>
-	<string>Friction does not write health data.</string>
-	<key>NSHealthShareUsageDescription</key>
-	<string>Friction reads your step count to verify unlock challenges.</string>
-	<key>CFBundleInfoDictionaryVersion</key>
+	<key></key>
 	<string>6.0</string>
-	<key>CFBundleIdentifier</key>
-	<string></string>
-	<key>key</key>
-	<string></string>
-	<key>CFBundleExecutable</key>
-	<string></string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -29,12 +17,7 @@
 			</array>
 		</dict>
 	</array>
-	<key></key>
-	<string>6.0</string>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>fetch</string>
-		<string>processing</string>
-	</array>
+	<key>key</key>
+	<string></string>
 </dict>
 </plist>

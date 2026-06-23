@@ -26,11 +26,11 @@ struct Rule: Identifiable, Codable {
     /// during JSON deserialization before `RuleStore` reattaches it.
     var activitySelection: FamilyActivitySelection?
 
-    /// The opaque `ApplicationToken` used by `ManagedSettings` to apply shields.
+    /// The opaque `ApplicationToken` used by `ManagedSettings` to apply shields
+    /// and by `Label(token)` in SwiftUI for privacy-compliant icon + name rendering.
     /// Derived from the first application in `activitySelection` — never stored directly.
     var appToken: ApplicationToken? {
-        guard let selection = activitySelection else { return nil }
-        return selection.applicationTokens.first
+        activitySelection?.applicationTokens.first
     }
 
     /// Human-readable app name stored in JSON so the UI can render without the token.

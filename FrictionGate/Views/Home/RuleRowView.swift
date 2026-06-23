@@ -1,69 +1,106 @@
 import SwiftUI
+import FamilyControls
+import ManagedSettings
 
 struct RuleRowView: View {
 
     let rule: Rule
-    /// Whether the app is currently shielded (blocked) — drives the toggle.
+    /// Whether the rule itself is active (not paused / disabled by the user).
+    /// This drives the toggle — it is true even when the app is currently
+    /// unblocked due to time conditions or an active session.
+    let isRuleActive: Bool
+    /// Whether ManagedSettings is currently shielding the app.
+    /// Drives the "Blocked" / "Unlocked" status badge only.
     let isShielded: Bool
     let onToggleTap: () -> Void
     let onOptions: () -> Void
 
     var body: some View {
-        HStack(spacing: 14) {
-            AppIconView(appName: rule.appDisplayName, bundleID: rule.appBundleID, size: 46)
-                .opacity(isShielded ? 1 : 0.45)
+        HStack(alignment: .center, spacing: 14) {
 
-            info
-            Spacer(minLength: 8)
-            controls
-        }
-        .padding(.vertical, 6)
-    }
+            // ── App icon ──────────────────────────────────────────────────
+            AppIconView(token: rule.appToken,
+                        appName: rule.appDisplayName,
+                        size: 52)
+                .opacity(isRuleActive ? 1 : 0.35)
 
-    // MARK: - Info column
+            // ── Info column ───────────────────────────────────────────────
+            VStack(alignment: .leading, spacing: 5) {
 
-    private var info: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(rule.appDisplayName)
-                .font(.headline)
-                .foregroundStyle(Color.appPrimary)
+                // App name
+                appNameView
 
-            if let condition = rule.conditions.first {
-                Text(condition.displayDescription)
-                    .font(.caption)
-                    .foregroundStyle(Color.appSecondary)
-                    .lineLimit(1)
+                // Condition summary (if any)
+                if let condition = rule.conditions.first {
+                    Text(condition.displayDescription)
+                        .font(.subheadline)
+                        .foregroundStyle(Color.appSecondary)
+                        .lineLimit(1)
+                }
+
+                // Badges + options button on same row
+                HStack(spacing: 6) {
+                    statusBadge
+
+                    if !rule.challenges.isEmpty {
+                        ThemeBadge(
+                            text: rule.challenges[0].displayName,
+                            color: Color.appAccentBright
+                        )
+                    }
+
+                    Spacer(minLength: 0)
+
+                    Button { onOptions() } label: {
+                        Image(systemName: "ellipsis")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(Color.appTertiary)
+                            .padding(7)
+                            .background(Color.appSurface2)
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                }
             }
 
-            HStack(spacing: 6) {
-                if isShielded {
-                    ThemeBadge(text: "Blocked", color: Color.appAccent)
-                } else {
-                    ThemeBadge(text: "Unlocked", color: Color.appSecondary)
-                }
-                if !rule.challenges.isEmpty {
-                    ThemeBadge(text: rule.challenges[0].displayName, color: Color.appAccentBright)
-                }
-            }
-        }
-    }
-
-    // MARK: - Controls column
-
-    private var controls: some View {
-        VStack(alignment: .trailing, spacing: 12) {
+            // ── Toggle ────────────────────────────────────────────────────
             Toggle("", isOn: Binding(
-                get: { isShielded },
+                get: { isRuleActive },
                 set: { _ in onToggleTap() }
             ))
             .labelsHidden()
+            .tint(Color.appAccent)
+            .fixedSize()
+        }
+        .padding(.vertical, 12)
+        .padding(.trailing, 2)
+    }
 
-            Button { onOptions() } label: {
-                Image(systemName: "ellipsis.circle")
-                    .foregroundStyle(Color.appTertiary)
-                    .font(.title3)
+    // MARK: - Subviews
+
+    @ViewBuilder
+    private var appNameView: some View {
+        if let token = rule.appToken {
+            Label(token)
+                .labelStyle(.titleOnly)
+                .font(.body.weight(.semibold))
+                .foregroundStyle(isRuleActive ? Color.appPrimary : Color.appSecondary)
+        } else {
+            Text(rule.appDisplayName.isEmpty ? "App" : rule.appDisplayName)
+                .font(.body.weight(.semibold))
+                .foregroundStyle(isRuleActive ? Color.appPrimary : Color.appSecondary)
+        }
+    }
+
+    private var statusBadge: some View {
+        Group {
+            if !isRuleActive {
+                ThemeBadge(text: "Paused", color: Color.appTertiary)
+            } else if isShielded {
+                ThemeBadge(text: "Blocked", color: Color.appAccent)
+            } else {
+                ThemeBadge(text: "Active", color: Color.appSuccess)
             }
-            .buttonStyle(.plain)
         }
     }
 }

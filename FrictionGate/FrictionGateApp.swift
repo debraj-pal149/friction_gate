@@ -14,9 +14,21 @@ final class AppState: ObservableObject {
         UserDefaults.standard.bool(forKey: "friction_permission_primer_shown")
     }()
 
+    /// Persisted in UserDefaults.standard so it survives app updates and reinstalls
+    /// that preserve the data container (i.e. device upgrades, TestFlight updates).
+    /// Only a full device wipe / app deletion resets this.
+    @Published var hasShownOnboarding: Bool = {
+        UserDefaults.standard.bool(forKey: "friction_onboarding_shown")
+    }()
+
     func markPrimerShown() {
         hasShownPermissionPrimer = true
         UserDefaults.standard.set(true, forKey: "friction_permission_primer_shown")
+    }
+
+    func markOnboardingShown() {
+        hasShownOnboarding = true
+        UserDefaults.standard.set(true, forKey: "friction_onboarding_shown")
     }
 }
 
@@ -93,22 +105,6 @@ struct FrictionGateApp: App {
 
         UNUserNotificationCenter.current().delegate = notificationDelegate
         FrictionGateApp.configureGlobalAppearance()
-        FrictionGateApp.configureURLCache()
-    }
-
-    // MARK: - URLCache limits
-    //
-    // AsyncImage uses URLSession.shared → URLCache.shared.
-    // Without a cap this grows to iOS's default of 4 MB in-memory / 512 MB on disk,
-    // contributing directly to the app being killed under memory pressure.
-    // Small app icons don't need more than 2 MB in-memory cache.
-
-    private static func configureURLCache() {
-        URLCache.shared = URLCache(
-            memoryCapacity:  2 * 1024 * 1024,   // 2 MB in-memory
-            diskCapacity:   20 * 1024 * 1024,   // 20 MB on disk
-            diskPath:       "friction_icon_cache"
-        )
     }
 
     // MARK: - Global UIKit appearance (Ink + Bone + Prussian Blue)
@@ -124,7 +120,7 @@ struct FrictionGateApp: App {
         nav.shadowColor     = UIColor(white: 0, alpha: 0.06)     // subtle dark hairline
         nav.largeTitleTextAttributes = [
             .foregroundColor: UIColor(themeHex: "0D0D14"),
-            .font: UIFont.systemFont(ofSize: 28, weight: .bold)
+            .font: UIFont.systemFont(ofSize: 26, weight: .bold)
         ]
         nav.titleTextAttributes = [
             .foregroundColor: UIColor(themeHex: "0D0D14"),

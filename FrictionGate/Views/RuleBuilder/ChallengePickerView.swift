@@ -29,18 +29,25 @@ struct ChallengePickerView: View {
         .inkBackground()
         .listStyle(.insetGrouped)
         .onAppear { loadFromVM() }
+        .onChange(of: stepsEnabled)   { _ in sync() }
+        .onChange(of: stepsRequired)  { _ in sync() }
+        .onChange(of: mathsEnabled)   { _ in sync() }
+        .onChange(of: mathsCount)     { _ in sync() }
+        .onChange(of: typeEnabled)    { _ in sync() }
+        .onChange(of: typeSentence)   { _ in sync() }
+        .onChange(of: waitEnabled)    { _ in sync() }
+        .onChange(of: waitMinutes)    { _ in sync() }
+        .onChange(of: reasonEnabled)  { _ in sync() }
     }
 
     // MARK: - Sections
 
     private var stepsSection: some View {
         Section {
-            Toggle("Require steps", isOn: $stepsEnabled.didSet { _ in sync() })
+            Toggle("Require steps", isOn: $stepsEnabled)
             if stepsEnabled {
-                Stepper("Steps: \(stepsRequired)",
-                        value: $stepsRequired.didSet { _ in sync() },
-                        in: 100...10_000, step: 100)
-                .foregroundStyle(Color.appPrimary)
+                Stepper("Steps: \(stepsRequired)", value: $stepsRequired, in: 100...10_000, step: 100)
+                    .foregroundStyle(Color.appPrimary)
             }
         } header: {
             Label("Steps Challenge", systemImage: "figure.walk")
@@ -55,12 +62,10 @@ struct ChallengePickerView: View {
 
     private var mathsSection: some View {
         Section {
-            Toggle("Require maths", isOn: $mathsEnabled.didSet { _ in sync() })
+            Toggle("Require maths", isOn: $mathsEnabled)
             if mathsEnabled {
-                Stepper("Problems: \(mathsCount)",
-                        value: $mathsCount.didSet { _ in sync() },
-                        in: 1...20)
-                .foregroundStyle(Color.appPrimary)
+                Stepper("Problems: \(mathsCount)", value: $mathsCount, in: 1...20)
+                    .foregroundStyle(Color.appPrimary)
             }
         } header: {
             Label("Maths Challenge", systemImage: "function")
@@ -75,9 +80,9 @@ struct ChallengePickerView: View {
 
     private var typeSentenceSection: some View {
         Section {
-            Toggle("Require typing a sentence", isOn: $typeEnabled.didSet { _ in sync() })
+            Toggle("Require typing a sentence", isOn: $typeEnabled)
             if typeEnabled {
-                TextField("Sentence to type", text: $typeSentence.didSet { _ in sync() }, axis: .vertical)
+                TextField("Sentence to type", text: $typeSentence, axis: .vertical)
                     .lineLimit(2...4)
                     .foregroundStyle(Color.appPrimary)
             }
@@ -94,12 +99,10 @@ struct ChallengePickerView: View {
 
     private var waitSection: some View {
         Section {
-            Toggle("Require a wait", isOn: $waitEnabled.didSet { _ in sync() })
+            Toggle("Require a wait", isOn: $waitEnabled)
             if waitEnabled {
-                Stepper("Wait: \(waitMinutes) min",
-                        value: $waitMinutes.didSet { _ in sync() },
-                        in: 1...60)
-                .foregroundStyle(Color.appPrimary)
+                Stepper("Wait: \(waitMinutes) min", value: $waitMinutes, in: 1...60)
+                    .foregroundStyle(Color.appPrimary)
             }
         } header: {
             Label("Wait Challenge", systemImage: "timer")
@@ -114,7 +117,7 @@ struct ChallengePickerView: View {
 
     private var writeReasonSection: some View {
         Section {
-            Toggle("Require written justification", isOn: $reasonEnabled.didSet { _ in sync() })
+            Toggle("Require written justification", isOn: $reasonEnabled)
         } header: {
             Label("Write a Reason", systemImage: "pencil.and.list.clipboard")
                 .foregroundStyle(Color.appSecondary)

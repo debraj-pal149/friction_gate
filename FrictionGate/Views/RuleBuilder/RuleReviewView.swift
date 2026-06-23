@@ -1,4 +1,6 @@
 import SwiftUI
+import FamilyControls
+import ManagedSettings
 
 struct RuleReviewView: View {
 
@@ -102,15 +104,29 @@ struct RuleReviewView: View {
     private var appHeaderSection: some View {
         Section {
             HStack(spacing: 16) {
-                AppIconView(appName: vm.appDisplayName, bundleID: vm.appBundleID, size: 64)
+                AppIconView(token: vm.applicationToken,
+                            appName: vm.appDisplayName,
+                            size: 64)
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(vm.appDisplayName.isEmpty ? "Selected App" : vm.appDisplayName)
-                        .font(.title3.bold())
-                        .foregroundStyle(Color.appPrimary)
+                    if let token = vm.applicationToken {
+                        Label(token)
+                            .labelStyle(.titleOnly)
+                            .font(.title3.bold())
+                            .foregroundStyle(Color.appPrimary)
+                    } else {
+                        Text(vm.appDisplayName.isEmpty ? "Selected App" : vm.appDisplayName)
+                            .font(.title3.bold())
+                            .foregroundStyle(Color.appPrimary)
+                    }
+                    if !vm.appDisplayName.isEmpty {
+                        Text(vm.appDisplayName)
+                            .font(.caption)
+                            .foregroundStyle(Color.appSecondary)
+                    }
                     Text("Rule applies to this app")
                         .font(.caption)
-                        .foregroundStyle(Color.appSecondary)
+                        .foregroundStyle(Color.appTertiary)
                 }
             }
             .padding(.vertical, 6)

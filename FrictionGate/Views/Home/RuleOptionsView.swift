@@ -1,4 +1,6 @@
 import SwiftUI
+import FamilyControls
+import ManagedSettings
 
 /// A sheet that opens from the options button (⋯) on a rule row.
 struct RuleOptionsView: View {
@@ -49,13 +51,26 @@ struct RuleOptionsView: View {
         Group {
             Section {
                 HStack(spacing: 14) {
-                    AppIconView(appName: rule.appDisplayName,
-                                bundleID: rule.appBundleID, size: 52)
+                    AppIconView(token: rule.appToken,
+                                appName: rule.appDisplayName,
+                                size: 52)
 
                     VStack(alignment: .leading, spacing: 6) {
-                        Text(rule.appDisplayName.isEmpty ? "Unnamed App" : rule.appDisplayName)
-                            .font(.title3.bold())
-                            .foregroundStyle(Color.appPrimary)
+                        if let token = rule.appToken {
+                            Label(token)
+                                .labelStyle(.titleOnly)
+                                .font(.title3.bold())
+                                .foregroundStyle(Color.appPrimary)
+                        } else {
+                            Text(rule.appDisplayName.isEmpty ? "Unnamed App" : rule.appDisplayName)
+                                .font(.title3.bold())
+                                .foregroundStyle(Color.appPrimary)
+                        }
+                        if !rule.appDisplayName.isEmpty {
+                            Text(rule.appDisplayName)
+                                .font(.caption)
+                                .foregroundStyle(Color.appSecondary)
+                        }
                         statusBadge
                     }
                 }

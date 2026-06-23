@@ -29,21 +29,30 @@ struct ConditionPickerView: View {
         .inkBackground()
         .listStyle(.insetGrouped)
         .onAppear { loadFromVM() }
+        .onChange(of: twEnabled)      { _ in sync() }
+        .onChange(of: twStart)        { _ in sync() }
+        .onChange(of: twEnd)          { _ in sync() }
+        .onChange(of: twDays)         { _ in sync() }
+        .onChange(of: wakeEnabled)    { _ in sync() }
+        .onChange(of: wakeMins)       { _ in sync() }
+        .onChange(of: sleepEnabled)   { _ in sync() }
+        .onChange(of: sleepTimeDC)    { _ in sync() }
+        .onChange(of: sleepDuration)  { _ in sync() }
+        .onChange(of: limitEnabled)   { _ in sync() }
+        .onChange(of: limitMax)       { _ in sync() }
     }
 
     // MARK: - Sections
 
     private var timeWindowSection: some View {
         Section {
-            Toggle("Enable time window", isOn: $twEnabled.didSet { _ in sync() })
+            Toggle("Enable time window", isOn: $twEnabled)
             if twEnabled {
-                DatePicker("Start", selection: $twStart.didSet { _ in sync() },
-                           displayedComponents: .hourAndMinute)
-                DatePicker("End",   selection: $twEnd.didSet { _ in sync() },
-                           displayedComponents: .hourAndMinute)
+                DatePicker("Start", selection: $twStart, displayedComponents: .hourAndMinute)
+                DatePicker("End",   selection: $twEnd,   displayedComponents: .hourAndMinute)
                 VStack(alignment: .leading, spacing: 10) {
                     Text("Days").foregroundStyle(Color.appSecondary)
-                    DaySetPicker(selection: $twDays.didSet { _ in sync() })
+                    DaySetPicker(selection: $twDays)
                 }
                 .padding(.vertical, 4)
             }
@@ -60,12 +69,10 @@ struct ConditionPickerView: View {
 
     private var afterWakeUpSection: some View {
         Section {
-            Toggle("Enable after wake-up block", isOn: $wakeEnabled.didSet { _ in sync() })
+            Toggle("Enable after wake-up block", isOn: $wakeEnabled)
             if wakeEnabled {
-                Stepper("Duration: \(wakeMins) min",
-                        value: $wakeMins.didSet { _ in sync() },
-                        in: 5...240, step: 5)
-                .foregroundStyle(Color.appPrimary)
+                Stepper("Duration: \(wakeMins) min", value: $wakeMins, in: 5...240, step: 5)
+                    .foregroundStyle(Color.appPrimary)
             }
         } header: {
             Label("After Wake-Up", systemImage: "sunrise")
@@ -80,14 +87,11 @@ struct ConditionPickerView: View {
 
     private var beforeSleepSection: some View {
         Section {
-            Toggle("Enable before-sleep block", isOn: $sleepEnabled.didSet { _ in sync() })
+            Toggle("Enable before-sleep block", isOn: $sleepEnabled)
             if sleepEnabled {
-                DatePicker("Sleep time", selection: $sleepTimeDC.didSet { _ in sync() },
-                           displayedComponents: .hourAndMinute)
-                Stepper("Duration: \(sleepDuration) min",
-                        value: $sleepDuration.didSet { _ in sync() },
-                        in: 5...120, step: 5)
-                .foregroundStyle(Color.appPrimary)
+                DatePicker("Sleep time", selection: $sleepTimeDC, displayedComponents: .hourAndMinute)
+                Stepper("Duration: \(sleepDuration) min", value: $sleepDuration, in: 5...120, step: 5)
+                    .foregroundStyle(Color.appPrimary)
             }
         } header: {
             Label("Before Sleep", systemImage: "moon")
@@ -102,12 +106,10 @@ struct ConditionPickerView: View {
 
     private var dailyLimitSection: some View {
         Section {
-            Toggle("Enable daily open limit", isOn: $limitEnabled.didSet { _ in sync() })
+            Toggle("Enable daily open limit", isOn: $limitEnabled)
             if limitEnabled {
-                Stepper("Max opens: \(limitMax)",
-                        value: $limitMax.didSet { _ in sync() },
-                        in: 1...20)
-                .foregroundStyle(Color.appPrimary)
+                Stepper("Max opens: \(limitMax)", value: $limitMax, in: 1...20)
+                    .foregroundStyle(Color.appPrimary)
             }
         } header: {
             Label("Daily Open Limit", systemImage: "chart.bar")
@@ -230,13 +232,3 @@ private func dc(hour: Int, minute: Int = 0) -> DateComponents {
     DateComponents(hour: hour, minute: minute)
 }
 
-// MARK: - Binding didSet helper
-
-extension Binding {
-    func didSet(_ action: @escaping (Value) -> Void) -> Binding<Value> {
-        Binding(
-            get: { self.wrappedValue },
-            set: { newValue in self.wrappedValue = newValue; action(newValue) }
-        )
-    }
-}
