@@ -16,64 +16,66 @@ struct RuleRowView: View {
     let onOptions: () -> Void
 
     var body: some View {
-        HStack(alignment: .center, spacing: 14) {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .center, spacing: 12) {
+                AppIconView(token: rule.appToken,
+                            appName: rule.appDisplayName,
+                            size: 48)
+                    .opacity(isRuleActive ? 1 : 0.35)
 
-            // ── App icon ──────────────────────────────────────────────────
-            AppIconView(token: rule.appToken,
-                        appName: rule.appDisplayName,
-                        size: 52)
-                .opacity(isRuleActive ? 1 : 0.35)
+                VStack(alignment: .leading, spacing: 3) {
+                    appNameView
 
-            // ── Info column ───────────────────────────────────────────────
-            VStack(alignment: .leading, spacing: 5) {
-
-                // App name
-                appNameView
-
-                // Condition summary (if any)
-                if let condition = rule.conditions.first {
-                    Text(condition.displayDescription)
-                        .font(.subheadline)
-                        .foregroundStyle(Color.appSecondary)
-                        .lineLimit(1)
+                    if let condition = rule.conditions.first {
+                        Text(condition.displayDescription)
+                            .font(.footnote)
+                            .foregroundStyle(Color.appSecondary)
+                            .lineLimit(1)
+                    }
                 }
 
-                // Badges + options button on same row
-                HStack(spacing: 6) {
-                    statusBadge
+                Spacer(minLength: 8)
 
-                    if !rule.challenges.isEmpty {
-                        ThemeBadge(
-                            text: rule.challenges[0].displayName,
-                            color: Color.appAccentBright
-                        )
-                    }
-
-                    Spacer(minLength: 0)
-
-                    Button { onOptions() } label: {
-                        Image(systemName: "ellipsis")
-                            .font(.footnote.weight(.semibold))
-                            .foregroundStyle(Color.appTertiary)
-                            .padding(7)
-                            .background(Color.appSurface2)
-                            .clipShape(Circle())
-                    }
-                    .buttonStyle(.plain)
-                }
+                Toggle("", isOn: Binding(
+                    get: { isRuleActive },
+                    set: { _ in onToggleTap() }
+                ))
+                .labelsHidden()
+                .tint(Color.appAccent)
+                .fixedSize()
             }
 
-            // ── Toggle ────────────────────────────────────────────────────
-            Toggle("", isOn: Binding(
-                get: { isRuleActive },
-                set: { _ in onToggleTap() }
-            ))
-            .labelsHidden()
-            .tint(Color.appAccent)
-            .fixedSize()
+            HStack(spacing: 6) {
+                statusBadge
+
+                if !rule.challenges.isEmpty {
+                    ThemeBadge(text: rule.challenges[0].displayName,
+                               color: Color.appAccentBright)
+                }
+
+                Spacer(minLength: 8)
+
+                Button { onOptions() } label: {
+                    HStack(spacing: 4) {
+                        Text("Options")
+                            .font(.caption.weight(.semibold))
+                        Image(systemName: "chevron.right")
+                            .font(.caption2.weight(.bold))
+                    }
+                    .foregroundStyle(Color.appSecondary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.appSurface2)
+                    .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+            }
         }
-        .padding(.vertical, 12)
-        .padding(.trailing, 2)
+        .padding(12)
+        .background(cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .shadow(color: Color.black.opacity(0.06), radius: 12, x: 0, y: 5)
+        .padding(.vertical, 6)
     }
 
     // MARK: - Subviews
@@ -83,11 +85,11 @@ struct RuleRowView: View {
         if let token = rule.appToken {
             Label(token)
                 .labelStyle(.titleOnly)
-                .font(.body.weight(.semibold))
+                .font(.headline)
                 .foregroundStyle(isRuleActive ? Color.appPrimary : Color.appSecondary)
         } else {
             Text(rule.appDisplayName.isEmpty ? "App" : rule.appDisplayName)
-                .font(.body.weight(.semibold))
+                .font(.headline)
                 .foregroundStyle(isRuleActive ? Color.appPrimary : Color.appSecondary)
         }
     }
@@ -101,6 +103,34 @@ struct RuleRowView: View {
             } else {
                 ThemeBadge(text: "Active", color: Color.appSuccess)
             }
+        }
+    }
+
+    private var cardBackground: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color.appSurface)
+
+            // Soft top highlight for a light glass feel.
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [Color.white.opacity(0.58), Color.white.opacity(0.06)],
+                        startPoint: .top,
+                        endPoint: .center
+                    )
+                )
+
+            // Subtle depth border.
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [Color.black.opacity(0.13), Color.black.opacity(0.03)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 0.7
+                )
         }
     }
 }
