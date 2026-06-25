@@ -29,8 +29,9 @@ struct RuleBuilderView: View {
                         EscalationPickerView(vm: vm)
                     case .review:
                         RuleReviewView(vm: vm, onSave: {
-                            vm.save()
-                            dismiss()
+                            if vm.save() {
+                                dismiss()
+                            }
                         })
                     }
                 }
@@ -58,6 +59,19 @@ struct RuleBuilderView: View {
                             .foregroundStyle(vm.canAdvance ? Color.appAccent : Color.appTertiary)
                     }
                 }
+            }
+            .alert(
+                "Overlapping Rule",
+                isPresented: Binding(
+                    get: { vm.ruleConflictMessage != nil },
+                    set: { if !$0 { vm.ruleConflictMessage = nil } }
+                )
+            ) {
+                Button("OK", role: .cancel) {
+                    vm.ruleConflictMessage = nil
+                }
+            } message: {
+                Text(vm.ruleConflictMessage ?? "")
             }
         }
     }

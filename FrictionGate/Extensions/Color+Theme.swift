@@ -1,75 +1,29 @@
 import SwiftUI
 
-// MARK: - Friction Design System — White + Electric Blue
+// MARK: - Friction Design System
 
 extension Color {
 
-    // ── ACCENT  (Electric Blue — change this ONE value to retheme the whole app)
-    //
-    // ┌────────────────────────────────────────────────────────────────────┐
-    // │  TO CHANGE THE ACCENT COLOR ACROSS THE ENTIRE APP,                 │
-    // │  update the hex string in `appAccent` below.                        │
-    // │  Every button, toggle, badge, ring, and progress bar picks it up.   │
-    // └────────────────────────────────────────────────────────────────────┘
-    static let appAccent       = Color(hex: "1040E8")  // Electric Blue
-    static let appAccentFill   = Color(hex: "EAF0FF")  // Very light blue fill (on white)
-    static let appAccentBright = Color(hex: "0A30CC")  // Slightly deeper for icons
-    /// Text / icons sitting ON a solid accent-colored background — always white.
-    static let appOnAccent     = Color.white
+    // Legacy aliases used throughout views.
+    // Backed by AppColors (single source of truth).
+    static var appAccent: Color       { AppColors.primaryAccent }
+    static var appAccentFill: Color   { AppColors.accentWash.opacity(0.22) }
+    static var appAccentBright: Color { AppColors.featureAccent }
+    static var appOnAccent: Color     { Color.white }
 
-    // ── Text hierarchy
+    static var appPrimary: Color   { AppColors.textPrimary }
+    static var appSecondary: Color { AppColors.textSecondary }
+    static var appTertiary: Color  { AppColors.textSecondary.opacity(0.72) }
 
-    static let appPrimary   = Color(hex: "0D0D14")  // Near-black
-    static let appSecondary = Color(hex: "5E5E72")  // Medium grey
-    static let appTertiary  = Color(hex: "9898A8")  // Placeholder / disabled
+    static var appBackground: Color { AppColors.background }
+    static var appSurface: Color    { AppColors.surface }
+    static var appSurface2: Color   { AppColors.surface.opacity(0.84) }
+    static var appSurface3: Color   { AppColors.surface.opacity(0.72) }
+    static var appBorder: Color     { AppColors.divider }
 
-    // ── Surface hierarchy  (background → surface → surface2 → surface3)
-
-    static let appBackground = Color(hex: "F4F4F8")  // Off-white page background
-    static let appSurface    = Color(hex: "FFFFFF")  // Pure white cards
-    static let appSurface2   = Color(hex: "EBEBF2")  // Elevated chips / disabled fills
-    static let appSurface3   = Color(hex: "E4E4EC")  // Input fields
-    static let appBorder     = Color(hex: "D8D8E4")  // Soft separator
-
-    // ── Semantic
-
-    static let appDestructive = Color(hex: "C42020")
-    static let appSuccess     = Color(hex: "1A7A46")
-    static let appWarning     = Color(hex: "B86A1A")
-
-    // ── Hex initialiser
-
-    init(hex: String) {
-        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
-        var int: UInt64 = 0
-        Scanner(string: hex).scanHexInt64(&int)
-        let a, r, g, b: UInt64
-        switch hex.count {
-        case 3:  (a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
-        case 6:  (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
-        case 8:  (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
-        default: (a, r, g, b) = (255, 0, 0, 0)
-        }
-        self.init(.sRGB,
-                  red:     Double(r) / 255,
-                  green:   Double(g) / 255,
-                  blue:    Double(b) / 255,
-                  opacity: Double(a) / 255)
-    }
-}
-
-// MARK: - UIColor hex initialiser
-
-extension UIColor {
-    convenience init(themeHex hex: String) {
-        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
-        var int: UInt64 = 0
-        Scanner(string: hex).scanHexInt64(&int)
-        let r = CGFloat((int >> 16) & 0xFF) / 255
-        let g = CGFloat((int >> 8)  & 0xFF) / 255
-        let b = CGFloat(int         & 0xFF) / 255
-        self.init(red: r, green: g, blue: b, alpha: 1)
-    }
+    static var appDestructive: Color { AppColors.destructive }
+    static var appSuccess: Color     { AppColors.success }
+    static var appWarning: Color     { AppColors.warning }
 }
 
 // MARK: - List helpers
@@ -103,9 +57,9 @@ extension View {
                     .strokeBorder(
                         LinearGradient(
                             colors: [
-                                Color.black.opacity(0.12),
-                                Color.black.opacity(0.05),
-                                Color.black.opacity(0.02)
+                                AppColors.divider.opacity(0.75),
+                                AppColors.divider.opacity(0.38),
+                                AppColors.divider.opacity(0.16)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
@@ -113,12 +67,14 @@ extension View {
                         lineWidth: 0.75
                     )
             }
-            .shadow(color: Color.black.opacity(0.07), radius: 14, x: 0, y: 5)
+            .shadow(color: AppColors.secondaryAccent.opacity(0.18), radius: 12, x: 0, y: 4)
     }
 
     /// Colored glow shadow using the app accent color.
     func accentGlow(radius: CGFloat = 12) -> some View {
-        self.shadow(color: Color.appAccent.opacity(0.28), radius: radius, x: 0, y: 4)
+        self
+            .shadow(color: Color.appAccent.opacity(0.22), radius: radius, x: 0, y: 4)
+            .shadow(color: Color.appAccentBright.opacity(0.16), radius: radius * 1.35, x: 0, y: 6)
     }
 }
 

@@ -53,11 +53,21 @@ final class RuleBuilderViewModel: ObservableObject {
 
     @Published var challenges: [UnlockChallenge] = []
 
+    var challengesSortedByDifficulty: [UnlockChallenge] {
+        challenges.sorted { lhs, rhs in
+            if lhs.difficultyScore == rhs.difficultyScore {
+                return lhs.displayName < rhs.displayName
+            }
+            return lhs.difficultyScore < rhs.difficultyScore
+        }
+    }
+
     // MARK: - Escalation & session
 
     @Published var escalationEnabled: Bool = false
     @Published var escalationWindowMinutes: Int = 120
     @Published var sessionDurationMinutes: Int = 20
+    @Published var ruleConflictMessage: String? = nil
 
     // MARK: - Init
 
@@ -96,6 +106,11 @@ final class RuleBuilderViewModel: ObservableObject {
     // MARK: - Step navigation
 
     func nextStep() {
+        if currentStep == .conditionPicker,
+           let conflict = firstTimeWindowConflictMessage() {
+            ruleConflictMessage = conflict
+            return
+        }
         guard canAdvance,
               let next = BuilderStep(rawValue: currentStep.rawValue + 1)
         else { return }
@@ -144,9 +159,9 @@ final class RuleBuilderViewModel: ObservableObject {
     var reviewSummary: String {
         guard isValid else { return "Complete all steps to preview the rule." }
 
-        let app    = appDisplayName.isEmpty ? "the selected app" : appDisplayName
+        let app    = appDisplayName.isEmpty ? "The selected app" : appDisplayName
         let conds  = conditions.map(\.displayDescription).joined(separator: ", and ")
-        let challs = challenges.map(\.shortDescription).joined(separator: " + ")
+        let challs = challengesSortedByDifficulty.map(\.shortDescription).joined(separator: " + ")
 
         var lines = [
             "\(app) will be blocked during \(conds).",
@@ -166,14 +181,18 @@ final class RuleBuilderViewModel: ObservableObject {
 
     /// Validates the builder state, constructs a `Rule`, persists it via
     /// `RuleStore`, registers `DeviceActivity` schedules, and resets the builder.
-    func save() {
-        guard isValid else { return }
+    func save() -> Bool {
+        guard isValid else { return false }
+        if let conflict = firstTimeWindowConflictMessage() {
+            ruleConflictMessage = conflict
+            return false
+        }
 
         var rule = Rule(
             appDisplayName: appDisplayName,
             appBundleID: appBundleID,
             conditions: conditions,
-            challenges: challenges,
+            challenges: challengesSortedByDifficulty,
             escalationEnabled: escalationEnabled,
             escalationWindowMinutes: escalationWindowMinutes,
             sessionDurationMinutes: sessionDurationMinutes
@@ -196,6 +215,7 @@ final class RuleBuilderViewModel: ObservableObject {
         }
 
         reset()
+        return true
     }
 
     // MARK: - Reset
@@ -210,6 +230,121 @@ final class RuleBuilderViewModel: ObservableObject {
         escalationEnabled       = false
         escalationWindowMinutes = 120
         sessionDurationMinutes  = 20
+        ruleConflictMessage     = nil
         currentStep             = .appPicker
+    }
+
+    // MARK: - Time-window conflict detection
+
+    /// Returns the first overlap conflict message when creating a new rule for the
+    /// same app with overlapping time-window conditions.
+    private func firstTimeWindowConflictMessage() -> String? {
+        let proposedWindows = conditions.compactMap { condition -> (DateComponents, DateComponents, DaySet)? in
+            guard case let .timeWindow(start, end, days) = condition else { return nil }
+            return (start, end, days)
+        }
+        guard !proposedWindows.isEmpty else { return nil }
+
+        guard isAppSelected else { return nil }
+
+        for existingRule in ruleStore.rules {
+            guard isSameSelectedApp(as: existingRule) else { continue }
+
+            let existingWindows = existingRule.conditions.compactMap { condition -> (DateComponents, DateComponents, DaySet)? in
+                guard case let .timeWindow(start, end, days) = condition else { return nil }
+                return (start, end, days)
+            }
+            guard !existingWindows.isEmpty else { continue }
+
+            for proposed in proposedWindows {
+                for existing in existingWindows where windowsOverlap(lhs: proposed, rhs: existing) {
+                    let existingRuleName = existingRule.appDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let label = existingRuleName.isEmpty
+                        ? "Rule \(existingRule.id.uuidString.prefix(6))"
+                        : existingRuleName
+                    let existingSummary = BlockCondition
+                        .timeWindow(start: existing.0, end: existing.1, days: existing.2)
+                        .displayDescription
+
+                    return "Cannot continue: this app already has rule '\(label)' with an overlapping time window (\(existingSummary)). Adjust the time/days to proceed."
+                }
+            }
+        }
+        return nil
+    }
+
+    private func isSameSelectedApp(as existingRule: Rule) -> Bool {
+        if let selectedToken = applicationToken,
+           let existingToken = existingRule.appToken,
+           selectedToken == existingToken {
+            return true
+        }
+        let selectedBundle = appBundleID?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let existingBundle = existingRule.appBundleID?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if let selectedBundle, !selectedBundle.isEmpty,
+           let existingBundle, !existingBundle.isEmpty,
+           selectedBundle == existingBundle {
+            return true
+        }
+        return false
+    }
+
+    private func windowsOverlap(
+        lhs: (DateComponents, DateComponents, DaySet),
+        rhs: (DateComponents, DateComponents, DaySet)
+    ) -> Bool {
+        let lhsIntervals = weeklyIntervals(start: lhs.0, end: lhs.1, days: lhs.2)
+        let rhsIntervals = weeklyIntervals(start: rhs.0, end: rhs.1, days: rhs.2)
+        for a in lhsIntervals {
+            for b in rhsIntervals where max(a.start, b.start) < min(a.end, b.end) {
+                return true
+            }
+        }
+        return false
+    }
+
+    private func weeklyIntervals(
+        start: DateComponents,
+        end: DateComponents,
+        days: DaySet
+    ) -> [(start: Int, end: Int)] {
+        let startMinute = minuteOfDay(from: start)
+        let endMinute = minuteOfDay(from: end)
+        let dayMinutes = 24 * 60
+        var result: [(Int, Int)] = []
+
+        for dayIndex in dayIndexes(days) {
+            let dayStart = dayIndex * dayMinutes
+            if startMinute == endMinute {
+                // Interpret equal start/end as full-day block for that day.
+                result.append((dayStart, dayStart + dayMinutes))
+            } else if startMinute < endMinute {
+                result.append((dayStart + startMinute, dayStart + endMinute))
+            } else {
+                // Overnight window (e.g. 10pm → 6am): split into two intervals.
+                result.append((dayStart + startMinute, dayStart + dayMinutes))
+                let nextDay = ((dayIndex + 1) % 7) * dayMinutes
+                result.append((nextDay, nextDay + endMinute))
+            }
+        }
+        return result
+    }
+
+    private func dayIndexes(_ days: DaySet) -> [Int] {
+        var result: [Int] = []
+        if days.contains(.monday)    { result.append(0) }
+        if days.contains(.tuesday)   { result.append(1) }
+        if days.contains(.wednesday) { result.append(2) }
+        if days.contains(.thursday)  { result.append(3) }
+        if days.contains(.friday)    { result.append(4) }
+        if days.contains(.saturday)  { result.append(5) }
+        if days.contains(.sunday)    { result.append(6) }
+        return result
+    }
+
+    private func minuteOfDay(from components: DateComponents) -> Int {
+        let hour = components.hour ?? 0
+        let minute = components.minute ?? 0
+        return max(0, min(23, hour)) * 60 + max(0, min(59, minute))
     }
 }

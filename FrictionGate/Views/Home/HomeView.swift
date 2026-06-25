@@ -26,8 +26,11 @@ struct HomeView: View {
     let ruleStore: RuleStore
 
     @EnvironmentObject private var wakeUpVM: WakeUpViewModel
+    @EnvironmentObject private var appState: AppState
+    @Environment(\.colorScheme) private var systemColorScheme
 
     @State private var activeSheet: HomeSheet? = nil
+    @State private var showThemeControls = false
 
     var body: some View {
         NavigationStack {
@@ -38,44 +41,53 @@ struct HomeView: View {
                     ruleList
                 }
             }
-            .navigationTitle("My Rules")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    Button {
+                        showThemeControls.toggle()
+                    } label: {
+                        Image(systemName: "paintpalette.fill")
+                            .foregroundStyle(Color.appSecondary)
+                            .font(.headline)
+                            .frame(width: 34, height: 34)
+                    }
+                    .padding(.vertical, 3)
+
                     Button { activeSheet = .builder } label: {
                         Image(systemName: "plus.circle.fill")
-                            .font(.title3)
+                            .font(.title2)
                             .foregroundStyle(Color.appAccent)
+                            .frame(width: 34, height: 34)
                     }
+                    .padding(.vertical, 3)
                 }
                 ToolbarItemGroup(placement: .topBarLeading) {
                     Button { activeSheet = .settings } label: {
                         Image(systemName: "gearshape")
                             .foregroundStyle(Color.appSecondary)
+                            .font(.headline)
+                            .frame(width: 34, height: 34)
                     }
+                    .padding(.vertical, 3)
                     Button { activeSheet = .about } label: {
                         Image(systemName: "info.circle")
                             .foregroundStyle(Color.appSecondary)
+                            .font(.headline)
+                            .frame(width: 34, height: 34)
                     }
+                    .padding(.vertical, 3)
                 }
             }
             .sheet(item: $activeSheet, onDismiss: {
                 // Refresh after the builder sheet closes so any newly-created
-                // rule's shield state is reflected in the toggle immediately.
+                // rule's shield state is reflected immediately.
                 vm.refreshRules()
                 vm.refreshShieldStates()
             }) { sheet in
                 sheetContent(for: sheet)
             }
-            // Disable-rule flow: user tapped toggle to turn OFF an active rule.
-            // They must complete the rule's challenge first.  On dismiss,
-            // didDismissDisableChallenge() checks if the challenge succeeded and
-            // deactivates the rule only if it did.
-            .sheet(item: $vm.pendingDisableFromToggle) { rule in
-                UnlockView(rule: rule, ruleStore: ruleStore)
-                    .onDisappear { vm.didDismissDisableChallenge() }
-            }
-            // Legacy direct-unlock sheet (used elsewhere if needed).
-            .sheet(item: $vm.pendingUnlockFromToggle) { rule in
+            .sheet(item: $vm.pendingUnlockRule) { rule in
                 UnlockView(rule: rule, ruleStore: ruleStore)
                     .onDisappear { vm.didDismissUnlock() }
             }
@@ -91,11 +103,67 @@ struct HomeView: View {
             } message: {
                 Text(vm.relockMessage)
             }
+            .overlay(alignment: .topTrailing) {
+                if showThemeControls {
+                    themeControlsPopover
+                        .padding(.top, 8)
+                        // Offset left so the panel sits below palette button,
+                        // not below the plus button at far right.
+                        .padding(.trailing, 48)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                        .zIndex(5)
+                }
+            }
+        }
+        .animation(.easeInOut(duration: 0.18), value: showThemeControls)
+        .onTapGesture {
+            if showThemeControls { showThemeControls = false }
         }
         .onAppear {
             vm.refreshRules()
             vm.refreshShieldStates()
         }
+    }
+
+    private var isDarkModeActive: Bool {
+        (appState.colorSchemeOverride ?? systemColorScheme) == .dark
+    }
+
+    private var themeControlsPopover: some View {
+        HStack(spacing: 12) {
+            Button {
+                appState.cycleSavedColorTemplate()
+            } label: {
+                Image(systemName: "paintpalette.fill")
+                    .font(.headline)
+                    .foregroundStyle(Color.appOnAccent)
+                    .frame(width: 38, height: 38)
+                    .background(Color.appAccent)
+                    .clipShape(Circle())
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                appState.toggleColorScheme(using: systemColorScheme)
+            } label: {
+                Image(systemName: isDarkModeActive ? "flashlight.on.fill" : "flashlight.off.fill")
+                    .font(.headline)
+                    .foregroundStyle(Color.appSecondary)
+                    .frame(width: 38, height: 38)
+                    .background(Color.appSurface2)
+                    .clipShape(Circle())
+                    .overlay(Circle().stroke(Color.appBorder, lineWidth: 0.7))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(Color.appSurface)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(Color.appBorder, lineWidth: 0.8)
+        )
     }
 
     // MARK: - Sheet content
@@ -110,9 +178,11 @@ struct HomeView: View {
             GlobalSettingsView(vm: wakeUpVM)
 
         case .options(let rule):
-            RuleOptionsView(rule: rule) {
-                vm.deleteRule(rule)
-            }
+            RuleOptionsView(
+                rule: rule,
+                onUnblock: { vm.requestUnlock(for: rule) },
+                onDelete: { vm.deleteRule(rule) }
+            )
 
         case .about:
             AboutFrictionView()
@@ -123,12 +193,10 @@ struct HomeView: View {
 
     private var ruleList: some View {
         List {
-            ForEach(vm.rules) { rule in
+            ForEach(vm.rulesByDifficulty) { rule in
                 RuleRowView(
                     rule: rule,
-                    isRuleActive: rule.isActive,
                     isShielded: vm.shieldedRuleIDs.contains(rule.id),
-                    onToggleTap: { vm.handleToggleTap(for: rule) },
                     onOptions: { activeSheet = .options(rule) }
                 )
                 .surfaceRow()
@@ -137,7 +205,7 @@ struct HomeView: View {
         }
         .inkBackground()
         .listStyle(.insetGrouped)
-        .safeAreaInset(edge: .top) { Color.clear.frame(height: 6) }
+        .padding(.top, -10)
     }
 
     // MARK: - Empty state
@@ -299,7 +367,7 @@ private struct AboutFrictionView: View {
 
                 if index < features.count - 1 {
                     Divider()
-                        .background(Color.white.opacity(0.06))
+                        .background(Color.appBorder)
                 }
             }
         }

@@ -29,8 +29,23 @@ struct ContentView: View {
                     PermissionPrimerView()
                 }
             }
-            .preferredColorScheme(.light)
+            .preferredColorScheme(appState.colorSchemeOverride)
             .tint(Color.appAccent)
+            .onAppear {
+                startupLog(
+                    "ContentView appear | onboarding=\(appState.hasShownOnboarding) " +
+                    "primer=\(appState.hasShownPermissionPrimer) status=\(appState.familyControlsStatus)"
+                )
+            }
+            .onChange(of: appState.hasShownOnboarding) { value in
+                startupLog("hasShownOnboarding -> \(value)")
+            }
+            .onChange(of: appState.hasShownPermissionPrimer) { value in
+                startupLog("hasShownPermissionPrimer -> \(value)")
+            }
+            .onChange(of: appState.familyControlsStatus) { value in
+                startupLog("familyControlsStatus -> \(value)")
+            }
     }
 
     /// True when either the onboarding OR the permission primer still needs to be shown.
@@ -46,6 +61,10 @@ struct ContentView: View {
             },
             set: { _ in }   // dismissal is controlled by the child views themselves
         )
+    }
+
+    private func startupLog(_ message: String) {
+        print("[Startup \(Date().timeIntervalSince1970)] \(message)")
     }
 }
 

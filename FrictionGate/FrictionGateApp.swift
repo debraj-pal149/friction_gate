@@ -7,6 +7,10 @@ import UserNotifications
 /// App-level navigation state shared between `FrictionGateApp` and `ContentView`.
 @MainActor
 final class AppState: ObservableObject {
+    private enum ThemeKey {
+        static let colorSchemeOverride = "friction_color_scheme_override"
+    }
+
     @Published var pendingUnlockRule: Rule? = nil
     @Published var familyControlsStatus: AuthorizationStatus = .notDetermined
     @Published var familyControlsError: String? = nil
@@ -20,6 +24,16 @@ final class AppState: ObservableObject {
     @Published var hasShownOnboarding: Bool = {
         UserDefaults.standard.bool(forKey: "friction_onboarding_shown")
     }()
+    /// Selected saved theme config. Nil means transient working palette.
+    @Published var selectedColorTemplate: Int? = ColorTemplates.selectedTemplateID
+    /// Nil = follow system. Non-nil overrides app-wide color scheme.
+    @Published var colorSchemeOverride: ColorScheme? = {
+        switch UserDefaults.standard.string(forKey: ThemeKey.colorSchemeOverride) {
+        case "light": return .light
+        case "dark":  return .dark
+        default:      return nil
+        }
+    }()
 
     func markPrimerShown() {
         hasShownPermissionPrimer = true
@@ -29,6 +43,41 @@ final class AppState: ObservableObject {
     func markOnboardingShown() {
         hasShownOnboarding = true
         UserDefaults.standard.set(true, forKey: "friction_onboarding_shown")
+    }
+
+    func toggleColorScheme(using currentSystemScheme: ColorScheme) {
+        let next: ColorScheme
+        switch colorSchemeOverride {
+        case .light:
+            next = .dark
+        case .dark:
+            next = .light
+        case nil:
+            next = currentSystemScheme == .dark ? .light : .dark
+        }
+        setColorSchemeOverride(next)
+    }
+
+    func cycleSavedColorTemplate() {
+        let ids = ColorTemplates.savedTemplateIDs
+        guard !ids.isEmpty else { return }
+        let current = selectedColorTemplate ?? ids[0]
+        let idx = ids.firstIndex(of: current) ?? 0
+        let next = ids[(idx + 1) % ids.count]
+        selectedColorTemplate = next
+        ColorTemplates.selectedTemplateID = next
+    }
+
+    private func setColorSchemeOverride(_ scheme: ColorScheme?) {
+        colorSchemeOverride = scheme
+        let stored: String?
+        switch scheme {
+        case .light: stored = "light"
+        case .dark:  stored = "dark"
+        case nil:    stored = nil
+        @unknown default: stored = nil
+        }
+        UserDefaults.standard.set(stored, forKey: ThemeKey.colorSchemeOverride)
     }
 }
 
@@ -90,6 +139,7 @@ struct FrictionGateApp: App {
     // MARK: - Init
 
     init() {
+        Self.startupLog("App init start")
         let store    = RuleStore()
         let detector = WakeUpDetector()
         let state    = AppState()
@@ -105,33 +155,33 @@ struct FrictionGateApp: App {
 
         UNUserNotificationCenter.current().delegate = notificationDelegate
         FrictionGateApp.configureGlobalAppearance()
+        Self.startupLog("App init end")
     }
 
-    // MARK: - Global UIKit appearance (Ink + Bone + Prussian Blue)
+    // MARK: - Global UIKit appearance
     //
     // Called once at launch. Styles all NavigationBars and List backgrounds
     // consistently across every screen without per-view boilerplate.
-    // To change the accent color update Color.appAccent in Color+Theme.swift.
 
     private static func configureGlobalAppearance() {
         let nav = UINavigationBarAppearance()
-        nav.configureWithDefaultBackground()              // system blur — content bleeds through
-        nav.backgroundColor = UIColor(white: 1.0, alpha: 0.84)  // translucent white glass
-        nav.shadowColor     = UIColor(white: 0, alpha: 0.06)     // subtle dark hairline
+        nav.configureWithDefaultBackground()
+        nav.backgroundColor = AppColors.uiNavBackground
+        nav.shadowColor     = AppColors.uiNavShadow
         nav.largeTitleTextAttributes = [
-            .foregroundColor: UIColor(themeHex: "0D0D14"),
+            .foregroundColor: AppColors.uiTextPrimary,
             .font: UIFont.systemFont(ofSize: 26, weight: .bold)
         ]
         nav.titleTextAttributes = [
-            .foregroundColor: UIColor(themeHex: "0D0D14"),
+            .foregroundColor: AppColors.uiTextPrimary,
             .font: UIFont.systemFont(ofSize: 17, weight: .semibold)
         ]
         UINavigationBar.appearance().standardAppearance    = nav
         UINavigationBar.appearance().scrollEdgeAppearance  = nav
         UINavigationBar.appearance().compactAppearance     = nav
-        UINavigationBar.appearance().tintColor             = UIColor(themeHex: "1040E8")
+        UINavigationBar.appearance().tintColor             = AppColors.uiPrimaryAccent
 
-        UITableView.appearance().backgroundColor = UIColor(themeHex: "F4F4F8")
+        UITableView.appearance().backgroundColor = AppColors.uiBackground
     }
 
     // MARK: - Scene
@@ -144,25 +194,37 @@ struct FrictionGateApp: App {
                 .environmentObject(homeVM)
                 .environmentObject(wakeUpVM)
                 .task {
-                    await requestHealthKitAuthorization()
+                    Self.startupLog("Startup task begin")
                     await requestNotificationPermission()
+                    Self.startupLog("Notification request completed")
                     wireNotificationDelegate()
+                    Self.startupLog("Notification delegate wired")
+                    Self.startupLog("Startup task end")
                 }
                 .onOpenURL { handleURL($0) }
+                .onChange(of: appState.selectedColorTemplate) { _ in
+                    FrictionGateApp.configureGlobalAppearance()
+                }
+                .onChange(of: appState.colorSchemeOverride) { _ in
+                    FrictionGateApp.configureGlobalAppearance()
+                }
         }
         .onChange(of: scenePhase) { phase in
             guard phase == .active else { return }
+            Self.startupLog("scenePhase active begin")
             wakeUpVM.appDidBecomeActive()
             checkPendingUnlockFromExtension()
             refreshFamilyControlsStatus()
             reapplyShieldsForExpiredSessions()
             homeVM.refreshShieldStates()
+            Self.startupLog("scenePhase active end")
         }
     }
 
     // MARK: - Notification setup
 
     private func requestNotificationPermission() async {
+        Self.startupLog("requestNotificationPermission start")
         try? await UNUserNotificationCenter.current()
             .requestAuthorization(options: [.alert, .sound])
 
@@ -181,6 +243,7 @@ struct FrictionGateApp: App {
         )
         UNUserNotificationCenter.current()
             .setNotificationCategories([unlockCategory, relockCategory])
+        Self.startupLog("requestNotificationPermission end")
     }
 
     private func wireNotificationDelegate() {
@@ -282,13 +345,12 @@ struct FrictionGateApp: App {
         }
     }
 
-    // MARK: - Authorizations
-
-    private func requestHealthKitAuthorization() async {
-        try? await HealthKitService.shared.requestAuthorization()
-    }
-
     private func refreshFamilyControlsStatus() {
         appState.familyControlsStatus = AuthorizationCenter.shared.authorizationStatus
+        Self.startupLog("familyControlsStatus = \(appState.familyControlsStatus)")
+    }
+
+    private static func startupLog(_ message: String) {
+        print("[Startup \(Date().timeIntervalSince1970)] \(message)")
     }
 }

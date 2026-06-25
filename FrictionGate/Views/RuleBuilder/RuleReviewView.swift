@@ -40,12 +40,18 @@ struct RuleReviewView: View {
 
             if !vm.challenges.isEmpty {
                 Section("Challenges") {
-                    ForEach(vm.challenges.indices, id: \.self) { i in
-                        Label(vm.challenges[i].longDescription,
-                              systemImage: challengeIcon(vm.challenges[i]))
-                            .font(.subheadline)
-                            .foregroundStyle(Color.appPrimary)
-                            .labelStyle(AccentedIconLabelStyle())
+                    ForEach(vm.challengesSortedByDifficulty.indices, id: \.self) { i in
+                        let challenge = vm.challengesSortedByDifficulty[i]
+                        HStack(spacing: 10) {
+                            Label(challenge.longDescription,
+                                  systemImage: challengeIcon(challenge))
+                                .font(.subheadline)
+                                .foregroundStyle(Color.appPrimary)
+                                .labelStyle(AccentedIconLabelStyle())
+                            Spacer(minLength: 8)
+                            ThemeBadge(text: challenge.difficultyTier.compactLabel,
+                                       color: difficultyColor(challenge.difficultyTier))
+                        }
                     }
                 }
                 .surfaceRow()
@@ -152,6 +158,15 @@ struct RuleReviewView: View {
         case .typeSentence: return "keyboard"
         case .wait:         return "timer"
         case .writeReason:  return "pencil.and.list.clipboard"
+        }
+    }
+
+    private func difficultyColor(_ tier: ChallengeDifficultyTier) -> Color {
+        switch tier {
+        case .easy: return Color.appSuccess
+        case .medium: return Color.appAccent
+        case .hard: return Color.appWarning
+        case .extreme: return Color.appDestructive
         }
     }
 }

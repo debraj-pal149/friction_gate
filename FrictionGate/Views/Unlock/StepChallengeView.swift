@@ -11,10 +11,8 @@ struct StepChallengeView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 32) {
-                Spacer(minLength: 24)
-
+        GeometryReader { proxy in
+            VStack(spacing: 24) {
                 ZStack {
                     Circle()
                         .stroke(Color.appSurface2, lineWidth: 16)
@@ -47,38 +45,14 @@ struct StepChallengeView: View {
                     Text("Walk \(required) steps to unlock")
                         .font(.headline)
                         .foregroundStyle(Color.appPrimary)
-                    Text("Steps are counted from when you requested the unlock.")
+                    Text("Steps are counted from when you requested the unlock. Please don't close this dialog or the app while walking.")
                         .font(.footnote)
                         .foregroundStyle(Color.appSecondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
                 }
-
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Steps today")
-                            .font(.caption)
-                            .foregroundStyle(Color.appSecondary)
-                        Text("\(vm.stepsSinceMidnight)")
-                            .font(.title3.bold())
-                            .monospacedDigit()
-                            .foregroundStyle(Color.appPrimary)
-                    }
-                    Spacer()
-                    Button {
-                        vm.refreshStepsNow()
-                    } label: {
-                        Label("Refresh", systemImage: "arrow.clockwise")
-                            .font(.subheadline)
-                    }
-                    .buttonStyle(.bordered)
-                }
-                .padding()
-                .glassCard(cornerRadius: 14)
-                .padding(.horizontal)
-
-                Spacer()
             }
+            .frame(maxWidth: .infinity, minHeight: proxy.size.height, maxHeight: .infinity, alignment: .center)
             .padding()
         }
         .background(Color.appBackground)

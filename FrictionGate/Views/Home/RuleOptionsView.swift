@@ -6,6 +6,7 @@ import ManagedSettings
 struct RuleOptionsView: View {
 
     let rule: Rule
+    let onUnblock: () -> Void
     let onDelete: () -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -71,7 +72,11 @@ struct RuleOptionsView: View {
                                 .font(.caption)
                                 .foregroundStyle(Color.appSecondary)
                         }
-                        statusBadge
+                        HStack(spacing: 8) {
+                            statusBadge
+                            ThemeBadge(text: rule.difficultyTier.compactLabel,
+                                       color: difficultyColor(rule.difficultyTier))
+                        }
                     }
                 }
                 .padding(.vertical, 6)
@@ -80,6 +85,28 @@ struct RuleOptionsView: View {
             }
             .surfaceRow()
             .listSectionSeparatorTint(Color.appBorder)
+
+            Section {
+                Button {
+                    dismiss()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                        onUnblock()
+                    }
+                } label: {
+                    HStack {
+                        Spacer()
+                        Label("Unblock App", systemImage: "lock.open.fill")
+                        Spacer()
+                    }
+                }
+                .foregroundStyle(Color.appOnAccent)
+                .listRowBackground(Color.appAccent)
+            } footer: {
+                Text("Starts the challenge flow. Success unblocks now and auto-blocks after the session.")
+                    .foregroundStyle(Color.appTertiary)
+            }
+            .surfaceRow()
+            .listRowSeparatorTint(Color.appBorder)
 
             if !rule.conditions.isEmpty {
                 Section {
@@ -100,12 +127,18 @@ struct RuleOptionsView: View {
 
             if !rule.challenges.isEmpty {
                 Section {
-                    ForEach(rule.challenges.indices, id: \.self) { i in
-                        Label(rule.challenges[i].longDescription,
-                              systemImage: challengeIcon(rule.challenges[i]))
-                            .font(.subheadline)
-                            .foregroundStyle(Color.appPrimary)
-                            .labelStyle(ThemedLabelStyle())
+                    ForEach(rule.challengesByDifficulty.indices, id: \.self) { i in
+                        let challenge = rule.challengesByDifficulty[i]
+                        HStack(spacing: 10) {
+                            Label(challenge.longDescription,
+                                  systemImage: challengeIcon(challenge))
+                                .font(.subheadline)
+                                .foregroundStyle(Color.appPrimary)
+                                .labelStyle(ThemedLabelStyle())
+                            Spacer(minLength: 8)
+                            ThemeBadge(text: challenge.difficultyTier.compactLabel,
+                                       color: difficultyColor(challenge.difficultyTier))
+                        }
                     }
                 } header: {
                     Label("Unlock Challenges", systemImage: "lock.open")
@@ -165,13 +198,7 @@ struct RuleOptionsView: View {
     // MARK: - Helpers
 
     private var statusBadge: some View {
-        Group {
-            if !rule.isActive {
-                ThemeBadge(text: "Paused", color: Color.appWarning)
-            } else {
-                ThemeBadge(text: "Active", color: Color.appSuccess)
-            }
-        }
+        ThemeBadge(text: "Active", color: Color.appSuccess)
     }
 
     private func detailRow(_ label: String, value: String) -> some View {
@@ -204,6 +231,15 @@ struct RuleOptionsView: View {
         }
     }
 
+    private func difficultyColor(_ tier: ChallengeDifficultyTier) -> Color {
+        switch tier {
+        case .easy: return Color.appSuccess
+        case .medium: return Color.appAccent
+        case .hard: return Color.appWarning
+        case .extreme: return Color.appDestructive
+        }
+    }
+
     // MARK: - Delete entry point
 
     private var deleteEntrySection: some View {
@@ -213,7 +249,11 @@ struct RuleOptionsView: View {
                     showDeleteConfirmation = true
                 }
             } label: {
-                Label("Delete Rule", systemImage: "trash")
+                HStack {
+                    Spacer()
+                    Label("Delete Rule", systemImage: "trash")
+                    Spacer()
+                }
             }
         } footer: {
             Text("Permanently removes the rule and all blocking schedules for this app.")

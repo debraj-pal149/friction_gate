@@ -18,18 +18,21 @@ final class HomeViewModel: ObservableObject {
     /// Mirrors `ruleStore.rules` so Views only need to observe this ViewModel.
     @Published var rules: [Rule] = []
 
+    var rulesByDifficulty: [Rule] {
+        rules.sorted { lhs, rhs in
+            if lhs.difficultyScore == rhs.difficultyScore {
+                return lhs.createdAt < rhs.createdAt
+            }
+            return lhs.difficultyScore < rhs.difficultyScore
+        }
+    }
+
     /// Which rule IDs currently have an active ManagedSettings shield.
-    /// Used for the "Blocked / Unlocked" badge — NOT for the toggle.
+    /// Used for the "Blocked / Unblocked" status in Home.
     @Published var shieldedRuleIDs: Set<UUID> = []
 
-    /// Set when the user taps a toggle to DISABLE an active rule.
-    /// HomeView presents UnlockView so the user must complete the challenge.
-    /// On dismiss, if the challenge succeeded, the rule is deactivated.
-    @Published var pendingDisableFromToggle: Rule? = nil
-
-    /// Set when the user taps a toggle to UNLOCK a currently-blocked app
-    /// outside of the disable-rule flow (legacy direct-unlock path).
-    @Published var pendingUnlockFromToggle: Rule? = nil
+    /// Set when user requests to unlock an app. HomeView presents UnlockView.
+    @Published var pendingUnlockRule: Rule? = nil
 
     /// Set when the user tries to RE-LOCK an app while a session is still active.
     /// HomeView shows a confirmation alert.
@@ -42,12 +45,12 @@ final class HomeViewModel: ObservableObject {
 
     init(
         ruleStore: RuleStore,
-        blockingService: BlockingService = .shared,
-        deviceActivityService: DeviceActivityService = .shared
+        blockingService: BlockingService? = nil,
+        deviceActivityService: DeviceActivityService? = nil
     ) {
         self.ruleStore = ruleStore
-        self.blockingService = blockingService
-        self.deviceActivityService = deviceActivityService
+        self.blockingService = blockingService ?? BlockingService.shared
+        self.deviceActivityService = deviceActivityService ?? DeviceActivityService.shared
 
         ruleStore.$rules
             .assign(to: &$rules)
@@ -76,41 +79,14 @@ final class HomeViewModel: ObservableObject {
         shieldedRuleIDs = Set(blocked)
     }
 
-    // MARK: - Toggle tap handler
-    //
-    // The toggle reflects WHETHER THE RULE IS ACTIVE (not paused / disabled),
-    // regardless of whether the app is currently shielded.
-    //
-    //   • rule active   → user wants to DISABLE it → challenge required
-    //   • rule inactive → user wants to RE-ENABLE  → immediate, no challenge
+    // MARK: - Unlock flow
 
-    func handleToggleTap(for rule: Rule) {
-        if rule.isActive {
-            // User wants to disable the rule — require the rule's challenge first.
-            pendingDisableFromToggle = rule
-        } else {
-            // Rule is off — re-enable it immediately.
-            enableRule(rule)
-        }
+    func requestUnlock(for rule: Rule) {
+        pendingUnlockRule = rule
     }
 
-    /// Called by HomeView after the "disable" UnlockView dismisses.
-    /// If the challenge was completed (shield was removed), we deactivate the rule.
-    func didDismissDisableChallenge() {
-        guard let rule = pendingDisableFromToggle else { return }
-        pendingDisableFromToggle = nil
-        refreshShieldStates()
-
-        // The challenge succeeded when UnlockViewModel removed the shield.
-        // (Cancelled challenge leaves the shield in place.)
-        if !shieldedRuleIDs.contains(rule.id) {
-            deactivateRule(rule)
-        }
-    }
-
-    /// Called by HomeView after the legacy UnlockView dismisses.
     func didDismissUnlock() {
-        pendingUnlockFromToggle = nil
+        pendingUnlockRule = nil
         refreshShieldStates()
     }
 
@@ -123,36 +99,6 @@ final class HomeViewModel: ObservableObject {
 
     func cancelRelock() {
         pendingRelockRule = nil
-    }
-
-    // MARK: - Enable / disable helpers
-
-    private func enableRule(_ rule: Rule) {
-        guard var updated = ruleStore.rules.first(where: { $0.id == rule.id }) else { return }
-        updated.isActive = true
-        ruleStore.update(updated)
-        // Re-register DeviceActivity schedules.
-        deviceActivityService.registerSchedules(for: updated)
-        // Apply shield immediately for unconditional (always-block) rules.
-        if updated.conditions.isEmpty {
-            blockingService.applyShield(for: updated)
-            shieldedRuleIDs.insert(updated.id)
-        }
-        refreshShieldStates()
-    }
-
-    private func deactivateRule(_ rule: Rule) {
-        guard var updated = ruleStore.rules.first(where: { $0.id == rule.id }) else { return }
-        updated.isActive = false
-        ruleStore.update(updated)
-        // Remove the live shield in case it is still on for any reason.
-        blockingService.removeShield(for: updated)
-        shieldedRuleIDs.remove(updated.id)
-        // Cancel session relock timer and all DeviceActivity schedules.
-        let shared = UserDefaults(suiteName: "group.com.debrajpal.frictiongate")
-        shared?.removeObject(forKey: "session_expires_\(updated.id.uuidString)")
-        deviceActivityService.cancelSessionRelock(for: updated.id)
-        deviceActivityService.removeSchedules(for: updated)
     }
 
     // MARK: - Private helpers
@@ -188,7 +134,7 @@ final class HomeViewModel: ObservableObject {
     }
 
     private func challengeSummary(for rule: Rule) -> String {
-        let parts = rule.challenges.map { challenge -> String in
+        let parts = rule.challengesByDifficulty.map { challenge -> String in
             switch challenge {
             case .steps(let n):     return "walk \(n) steps"
             case .maths(let c):     return "solve \(c) maths \(c == 1 ? "problem" : "problems")"

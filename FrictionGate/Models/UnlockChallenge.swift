@@ -63,3 +63,58 @@ enum UnlockChallenge: Codable, Hashable {
         }
     }
 }
+
+// MARK: - Difficulty
+
+enum ChallengeDifficultyTier: Int, CaseIterable, Comparable {
+    case easy = 1
+    case medium = 2
+    case hard = 3
+    case extreme = 4
+
+    static func < (lhs: ChallengeDifficultyTier, rhs: ChallengeDifficultyTier) -> Bool {
+        lhs.rawValue < rhs.rawValue
+    }
+
+    var title: String {
+        switch self {
+        case .easy: return "Easy"
+        case .medium: return "Medium"
+        case .hard: return "Hard"
+        case .extreme: return "Extreme"
+        }
+    }
+
+    var compactLabel: String {
+        "LVL \(rawValue) \(title.uppercased())"
+    }
+}
+
+extension UnlockChallenge {
+    /// Numeric score used for ordering challenges from easiest to hardest.
+    /// Important product rule: steps is always the most difficult challenge family.
+    var difficultyScore: Int {
+        switch self {
+        case .wait(let minutes):
+            return min(30, 10 + (minutes / 2))
+        case .writeReason:
+            return 34
+        case .typeSentence(let sentence):
+            let length = sentence.trimmingCharacters(in: .whitespacesAndNewlines).count
+            return min(62, 45 + (length / 8))
+        case .maths(let count):
+            return min(80, 58 + (count * 2))
+        case .steps(let required):
+            return min(100, 85 + (required / 400))
+        }
+    }
+
+    var difficultyTier: ChallengeDifficultyTier {
+        switch difficultyScore {
+        case ..<30: return .easy
+        case ..<55: return .medium
+        case ..<80: return .hard
+        default: return .extreme
+        }
+    }
+}

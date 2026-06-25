@@ -38,7 +38,7 @@ struct PermissionPrimerView: View {
                 RoundedRectangle(cornerRadius: 26, style: .continuous)
                     .fill(
                         LinearGradient(
-                            colors: [Color.appAccent, Color(hex: "0D3060")],
+                            colors: [Color.appAccent, Color.appAccentBright],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
@@ -85,11 +85,11 @@ struct PermissionPrimerView: View {
             featureRow(icon: "lock.fill",
                        title: "App blocking",
                        detail: "Friction shows a block screen when you try to open a restricted app.")
-            Divider().background(Color.white.opacity(0.06))
+            Divider().background(Color.appBorder)
             featureRow(icon: "figure.walk",
                        title: "Unlock challenges",
                        detail: "Walk steps, solve maths, or wait before access is granted.")
-            Divider().background(Color.white.opacity(0.06))
+            Divider().background(Color.appBorder)
             featureRow(icon: "clock.badge.checkmark",
                        title: "Scheduled rules",
                        detail: "Blocks activate automatically on your chosen days and times.")

@@ -143,9 +143,11 @@ struct Rule: Identifiable, Codable {
         escalationEnabled      = try c.decodeIfPresent(Bool.self,  forKey: .escalationEnabled) ?? false
         escalationWindowMinutes = try c.decodeIfPresent(Int.self,  forKey: .escalationWindowMinutes) ?? 120
         sessionDurationMinutes = try c.decodeIfPresent(Int.self,   forKey: .sessionDurationMinutes) ?? 20
-        isActive               = try c.decodeIfPresent(Bool.self,  forKey: .isActive) ?? true
-        isPaused               = try c.decodeIfPresent(Bool.self,  forKey: .isPaused) ?? false
-        pauseUntil             = try c.decodeIfPresent(Date.self,  forKey: .pauseUntil)
+        // Pause/deactivation has been removed from product behavior.
+        // Keep persisted keys for backward compatibility but coerce to active.
+        isActive               = true
+        isPaused               = false
+        pauseUntil             = nil
         createdAt              = try c.decodeIfPresent(Date.self,  forKey: .createdAt) ?? Date()
         lastUnlockedAt         = try c.decodeIfPresent(Date.self,  forKey: .lastUnlockedAt)
         unlockCount            = try c.decodeIfPresent(Int.self,   forKey: .unlockCount) ?? 0
@@ -159,10 +161,38 @@ struct Rule: Identifiable, Codable {
         return Date() > until
     }
 
-    /// Whether the rule is currently enforcing a block (active and not paused, or pause expired).
+    /// Rules are always enforcing unless deleted.
     var isEnforcing: Bool {
-        guard isActive else { return false }
-        if isPaused { return pauseHasExpired }
         return true
+    }
+}
+
+extension Rule {
+    /// Challenges ordered from easiest to hardest for predictable presentation.
+    var challengesByDifficulty: [UnlockChallenge] {
+        challenges.sorted { lhs, rhs in
+            if lhs.difficultyScore == rhs.difficultyScore {
+                return lhs.displayName < rhs.displayName
+            }
+            return lhs.difficultyScore < rhs.difficultyScore
+        }
+    }
+
+    /// Rule difficulty is driven by its hardest challenge with small nudges
+    /// for escalation and shorter session windows.
+    var difficultyScore: Int {
+        let base = challenges.map(\.difficultyScore).max() ?? 0
+        let escalationBonus = escalationEnabled ? 8 : 0
+        let sessionBonus = max(0, min(6, (20 - sessionDurationMinutes) / 4))
+        return min(100, base + escalationBonus + sessionBonus)
+    }
+
+    var difficultyTier: ChallengeDifficultyTier {
+        switch difficultyScore {
+        case ..<30: return .easy
+        case ..<55: return .medium
+        case ..<80: return .hard
+        default: return .extreme
+        }
     }
 }

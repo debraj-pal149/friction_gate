@@ -5,77 +5,57 @@ import ManagedSettings
 struct RuleRowView: View {
 
     let rule: Rule
-    /// Whether the rule itself is active (not paused / disabled by the user).
-    /// This drives the toggle — it is true even when the app is currently
-    /// unblocked due to time conditions or an active session.
-    let isRuleActive: Bool
     /// Whether ManagedSettings is currently shielding the app.
-    /// Drives the "Blocked" / "Unlocked" status badge only.
+    /// Drives the "Blocked" / "Unblocked" status badge.
     let isShielded: Bool
-    let onToggleTap: () -> Void
     let onOptions: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .center, spacing: 12) {
-                AppIconView(token: rule.appToken,
-                            appName: rule.appDisplayName,
-                            size: 48)
-                    .opacity(isRuleActive ? 1 : 0.35)
+        HStack(alignment: .center, spacing: 10) {
+            AppIconView(token: rule.appToken, appName: rule.appDisplayName, size: 47)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .stroke(Color.appBorder, lineWidth: 0.5)
+                )
 
-                VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 0) {
+                // Row 1: title
+                HStack(alignment: .center, spacing: 8) {
                     appNameView
-
-                    if let condition = rule.conditions.first {
-                        Text(condition.displayDescription)
-                            .font(.footnote)
-                            .foregroundStyle(Color.appSecondary)
-                            .lineLimit(1)
-                    }
                 }
 
-                Spacer(minLength: 8)
+                // Row 2: merged caption line
+                Text(captionText)
+                    .font(.system(size: 12, weight: .regular))
+                    .foregroundStyle(Color.appTertiary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .padding(.top, 4)
+                    .padding(.bottom, 6)
 
-                Toggle("", isOn: Binding(
-                    get: { isRuleActive },
-                    set: { _ in onToggleTap() }
-                ))
-                .labelsHidden()
-                .tint(Color.appAccent)
-                .fixedSize()
-            }
-
-            HStack(spacing: 6) {
-                statusBadge
-
-                if !rule.challenges.isEmpty {
-                    ThemeBadge(text: rule.challenges[0].displayName,
-                               color: Color.appAccentBright)
-                }
-
-                Spacer(minLength: 8)
-
-                Button { onOptions() } label: {
-                    HStack(spacing: 4) {
-                        Text("Options")
-                            .font(.caption.weight(.semibold))
+                // Row 3: status + chevron
+                HStack(spacing: 0) {
+                    statusRow
+                    Spacer(minLength: 8)
+                    Button(action: onOptions) {
                         Image(systemName: "chevron.right")
-                            .font(.caption2.weight(.bold))
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(Color.appTertiary)
+                            .frame(width: 24, height: 24)
+                            .contentShape(Rectangle())
                     }
-                    .foregroundStyle(Color.appSecondary)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Color.appSurface2)
-                    .clipShape(Capsule())
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
         }
-        .padding(12)
-        .background(cardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .shadow(color: Color.black.opacity(0.06), radius: 12, x: 0, y: 5)
-        .padding(.vertical, 6)
+        .padding(.horizontal, 11)
+        .padding(.vertical, 10)
+        .background(Color.appSurface)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(Color.appBorder, lineWidth: 0.5)
+        )
     }
 
     // MARK: - Subviews
@@ -85,52 +65,46 @@ struct RuleRowView: View {
         if let token = rule.appToken {
             Label(token)
                 .labelStyle(.titleOnly)
-                .font(.headline)
-                .foregroundStyle(isRuleActive ? Color.appPrimary : Color.appSecondary)
+                .foregroundStyle(Color.appPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
+                .scaleEffect(0.9, anchor: .leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
         } else {
             Text(rule.appDisplayName.isEmpty ? "App" : rule.appDisplayName)
-                .font(.headline)
-                .foregroundStyle(isRuleActive ? Color.appPrimary : Color.appSecondary)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(Color.appPrimary)
+                .lineLimit(1)
         }
     }
 
-    private var statusBadge: some View {
-        Group {
-            if !isRuleActive {
-                ThemeBadge(text: "Paused", color: Color.appTertiary)
-            } else if isShielded {
-                ThemeBadge(text: "Blocked", color: Color.appAccent)
-            } else {
-                ThemeBadge(text: "Active", color: Color.appSuccess)
-            }
+    private var statusRow: some View {
+        let style = statusStyle
+        return HStack(spacing: 5) {
+            Circle()
+                .fill(style.color)
+                .frame(width: 7, height: 7)
+            Text(style.text)
+                .font(.caption2.weight(.semibold))
+                .kerning(0.35)
+                .foregroundStyle(style.color)
         }
     }
 
-    private var cardBackground: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color.appSurface)
-
-            // Soft top highlight for a light glass feel.
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [Color.white.opacity(0.58), Color.white.opacity(0.06)],
-                        startPoint: .top,
-                        endPoint: .center
-                    )
-                )
-
-            // Subtle depth border.
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(
-                    LinearGradient(
-                        colors: [Color.black.opacity(0.13), Color.black.opacity(0.03)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 0.7
-                )
+    private var statusStyle: (text: String, color: Color) {
+        if isShielded {
+            return ("APP BLOCKED", Color.appDestructive)
+        } else {
+            return ("APP UNBLOCKED", Color.appSuccess)
         }
     }
+
+    private var captionText: String {
+        let condition = rule.conditions.first?.displayDescription ?? ""
+        let challenge = rule.challengesByDifficulty.first?.displayName.lowercased() ?? ""
+        if condition.isEmpty { return challenge }
+        if challenge.isEmpty { return condition }
+        return "\(condition) · \(challenge)"
+    }
+
 }

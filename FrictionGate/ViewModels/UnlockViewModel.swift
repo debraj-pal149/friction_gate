@@ -283,7 +283,7 @@ final class UnlockViewModel: ObservableObject {
         let multiplier = (rule.escalationEnabled && inWindow) ? attempt.currentMultiplier : 1
         currentMultiplier = multiplier
         isEscalating      = multiplier > 1
-        scaledChallenges  = rule.challenges.map { $0.scaled(by: multiplier) }
+        scaledChallenges  = rule.challengesByDifficulty.map { $0.scaled(by: multiplier) }
     }
 
     // MARK: - Challenge lifecycle
@@ -314,7 +314,7 @@ final class UnlockViewModel: ObservableObject {
     /// Advances to the next challenge, or finalises the unlock if all are done.
     func advanceToNextChallenge() {
         stepCancellable?.cancel()
-        stepMonitor.stopMonitoring()
+        stepMonitor.stopLiveStepTracking()
         waitTimerCancellable?.cancel()
         startChallenge(at: currentChallengeIndex + 1)
     }
@@ -322,7 +322,7 @@ final class UnlockViewModel: ObservableObject {
     // MARK: - Step challenge
 
     private func startStepChallenge(required: Int) {
-        stepMonitor.startMonitoring(from: challengeStartedAt)
+        stepMonitor.startLiveStepTracking(from: challengeStartedAt)
 
         // Observe step count and auto-advance when the goal is reached.
         stepCancellable = stepMonitor.$stepsFromTrackingStart
@@ -460,7 +460,7 @@ final class UnlockViewModel: ObservableObject {
     /// Does NOT record an unlock or modify escalation state.
     func abandon() {
         stepCancellable?.cancel()
-        stepMonitor.stopMonitoring()
+        stepMonitor.stopLiveStepTracking()
         waitTimerCancellable?.cancel()
         // Clear the pending unlock key so Friction doesn't re-show the screen
         // on the next foreground if the user cancelled without completing.

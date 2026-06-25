@@ -1,23 +1,23 @@
 import Foundation
 import Combine
+import CoreMotion
 
-/// Polls `HealthKitService` on a 10-second timer and publishes live step counts
-/// for use by the unlock screen and condition evaluation.
+/// Publishes step counts for unlock and condition evaluation.
 ///
 /// ## Usage — step challenge (unlock screen)
 /// ```swift
-/// // When the unlock screen appears, start counting from when the block fired:
-/// monitor.startMonitoring(from: attempt.blockAppliedAt ?? Date())
+/// // Start live tracking when the steps challenge appears:
+/// monitor.startLiveStepTracking(from: attempt.blockAppliedAt ?? Date())
 ///
 /// // Bind to stepsFromTrackingStart in the view.
 ///
 /// // On dismiss (challenge passed or cancelled):
-/// monitor.stopMonitoring()
+/// monitor.stopLiveStepTracking()
 /// ```
 ///
 /// ## Usage — daily step goal check
-/// `stepsSinceMidnight` is always refreshed alongside `stepsFromTrackingStart`,
-/// so ViewModels can compare it against a threshold without a separate query.
+/// `stepsSinceMidnight` is refreshed on a 10-second HealthKit polling timer.
+/// This is historical/summary data where some latency is acceptable.
 @MainActor
 final class StepMonitor: ObservableObject {
 
@@ -34,8 +34,11 @@ final class StepMonitor: ObservableObject {
     // MARK: - Dependencies
 
     private let healthKit: HealthKitService
+    private let pedometer = CMPedometer()
     private var trackingStartDate: Date?
     private var timerCancellable: AnyCancellable?
+    private var usingHealthKitFallbackForLive = false
+    private var hasRequestedHealthKitAuthorization = false
 
     // MARK: - Init
 
@@ -43,54 +46,112 @@ final class StepMonitor: ObservableObject {
         self.healthKit = healthKit
     }
 
-    // MARK: - Monitoring control
+    // MARK: - Monitoring control (live challenge tracking)
 
-    /// Starts the 10-second polling timer.
+    /// Starts live step tracking from `date` for the unlock challenge.
     ///
-    /// - Parameter date: Reference start date for the step challenge count
-    ///   (typically `UnlockAttempt.blockAppliedAt`).
-    func startMonitoring(from date: Date) {
+    /// Preferred path uses Core Motion's push-based `CMPedometer.startUpdates`
+    /// for near-real-time foreground updates. If unavailable, it falls back to
+    /// HealthKit polling (degraded behavior).
+    func startLiveStepTracking(from date: Date) {
         trackingStartDate = date
-        refresh()
-        timerCancellable = Timer.publish(every: 10, on: .main, in: .common)
-            .autoconnect()
-            .sink { [weak self] _ in self?.refresh() }
+        stepsFromTrackingStart = 0
+        requestHealthKitAuthorizationIfNeeded()
+        startMidnightPolling()
+
+        if CMPedometer.isStepCountingAvailable() {
+            usingHealthKitFallbackForLive = false
+            pedometer.startUpdates(from: date) { [weak self] data, error in
+                Task { @MainActor [weak self] in
+                    guard let self else { return }
+                    guard self.trackingStartDate != nil else { return }
+
+                    if let steps = data?.numberOfSteps.intValue {
+                        self.stepsFromTrackingStart = steps
+                        return
+                    }
+
+                    // If the live stream errors, degrade gracefully to HealthKit polling.
+                    if error != nil {
+                        self.usingHealthKitFallbackForLive = true
+                        self.refreshLiveStepsFromHealthKit()
+                    }
+                }
+            }
+        } else {
+            usingHealthKitFallbackForLive = true
+            refreshLiveStepsFromHealthKit()
+        }
     }
 
-    /// Stops polling and resets all published counts to zero.
-    func stopMonitoring() {
-        timerCancellable?.cancel()
-        timerCancellable    = nil
-        trackingStartDate   = nil
+    /// Stops live tracking and polling, then clears published counters.
+    func stopLiveStepTracking() {
+        pedometer.stopUpdates()
+        usingHealthKitFallbackForLive = false
+        stopMidnightPolling()
+        trackingStartDate = nil
         stepsFromTrackingStart = 0
-        stepsSinceMidnight     = 0
+        stepsSinceMidnight = 0
     }
 
     /// Triggers an immediate out-of-band refresh.
     ///
-    /// Use when the user taps "Check now" on the step-challenge screen so they
-    /// get instant feedback without waiting for the next 10-second tick.
+    /// - `stepsSinceMidnight` is always refreshed from HealthKit.
+    /// - `stepsFromTrackingStart` is refreshed only on fallback path; otherwise
+    ///   CMPedometer continues feeding live updates.
     func refreshNow() {
-        refresh()
+        requestHealthKitAuthorizationIfNeeded()
+        refreshMidnightSteps()
+        if usingHealthKitFallbackForLive {
+            refreshLiveStepsFromHealthKit()
+        }
     }
 
-    // MARK: - Private
+    // MARK: - Private (midnight polling)
 
-    private func refresh() {
+    private func startMidnightPolling() {
+        refreshMidnightSteps()
+        timerCancellable = Timer.publish(every: 10, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] _ in
+                self?.refreshMidnightSteps()
+                if self?.usingHealthKitFallbackForLive == true {
+                    self?.refreshLiveStepsFromHealthKit()
+                }
+            }
+    }
+
+    private func stopMidnightPolling() {
+        timerCancellable?.cancel()
+        timerCancellable = nil
+    }
+
+    private func refreshMidnightSteps() {
         Task { [weak self] in
             guard let self else { return }
+            self.stepsSinceMidnight = await self.healthKit.stepsSinceMidnight()
+        }
+    }
 
-            // Run both HealthKit queries concurrently.
-            if let date = trackingStartDate {
-                async let fromStart = healthKit.stepsSince(date)
-                async let midnight  = healthKit.stepsSinceMidnight()
-                let (s, m) = await (fromStart, midnight)
-                stepsFromTrackingStart = s
-                stepsSinceMidnight     = m
-            } else {
-                stepsFromTrackingStart = 0
-                stepsSinceMidnight     = await healthKit.stepsSinceMidnight()
+    private func requestHealthKitAuthorizationIfNeeded() {
+        guard !hasRequestedHealthKitAuthorization else { return }
+        hasRequestedHealthKitAuthorization = true
+        Task { [weak self] in
+            guard let self else { return }
+            try? await self.healthKit.requestAuthorization()
+            await MainActor.run {
+                self.refreshNow()
             }
+        }
+    }
+
+    // MARK: - Private (fallback live tracking)
+
+    private func refreshLiveStepsFromHealthKit() {
+        Task { [weak self] in
+            guard let self else { return }
+            guard let date = self.trackingStartDate else { return }
+            self.stepsFromTrackingStart = await self.healthKit.stepsSince(date)
         }
     }
 }

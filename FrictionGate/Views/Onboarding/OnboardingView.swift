@@ -50,7 +50,6 @@ struct OnboardingView: View {
                     .padding(.horizontal, 24)
                 }
             )
-            .preferredColorScheme(.light)
     }
 
     // MARK: - Header

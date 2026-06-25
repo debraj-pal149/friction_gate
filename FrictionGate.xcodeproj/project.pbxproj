@@ -11,14 +11,10 @@
 		2017D6D5EE4A66968643CCAB /* UnlockChallenge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67DFE17057430788224DCE77 /* UnlockChallenge.swift */; };
 		547BF0FD02294851C0F59A05 /* BlockingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A37B8D203F9DF236FF4DC1DD /* BlockingService.swift */; };
 		6394DAC141CBA6575C6BC715 /* RuleStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 814EC22E69E97E22FDA13197 /* RuleStore.swift */; };
-		67ED55F6C21FF9D1A6504BFF /* UnlockViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1314661D56A46D9479232C12 /* UnlockViewModel.swift */; };
-		87765DA089465D5CE3224CD0 /* StepMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78250BD3E71ECB47028B8C50 /* StepMonitor.swift */; };
 		942A22F130DEB2400049EFD2 /* Rule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 055B7AA6599AAD80AD3A1B43 /* Rule.swift */; };
 		990407DFF92815E46B91B371 /* UnlockAttempt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 554B84DB0C386E6D693C4CCF /* UnlockAttempt.swift */; };
 		9CBFB98C8018A8D72897F09E /* BlockCondition.swift in Sources */ = {isa = PBXBuildFile; fileRef = B47909E806163F76967B6C88 /* BlockCondition.swift */; };
 		AC143D9F03517CE4FA03C22D /* DeviceActivityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 542048C1849C931DF3B42F9F /* DeviceActivityService.swift */; };
-		BA902939C744D89EDE6DCA11 /* HomeViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45A8D5D18B8FD4BACBFE2F61 /* HomeViewModel.swift */; };
-		D0227F25B41C65B4F3D6046B /* RuleBuilderViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8172C938E85FD1EDFF699CFC /* RuleBuilderViewModel.swift */; };
 		D52907042FE6808D0005F066 /* DeviceActivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D52907032FE6808D0005F066 /* DeviceActivity.framework */; };
 		D529070C2FE6808D0005F066 /* FrictionGateMonitor.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = D52907012FE6808D0005F066 /* FrictionGateMonitor.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		D52907182FE680B40005F066 /* ManagedSettings.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D52907172FE680B40005F066 /* ManagedSettings.framework */; };
@@ -34,7 +30,6 @@
 		D529082A2FE6C1350005F066 /* ManagedSettingsUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D52908292FE6C1350005F066 /* ManagedSettingsUI.framework */; };
 		D52908322FE6C1350005F066 /* FrictionGateShieldConfig.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = D52908272FE6C1350005F066 /* FrictionGateShieldConfig.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		D52908BD2FE78B590005F066 /* UserNotifications.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D52908BC2FE78B590005F066 /* UserNotifications.framework */; };
-		D694D7C2509E890E069E2A56 /* WakeUpViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F7328097084FF82C17EF303 /* WakeUpViewModel.swift */; };
 		E4E1400FC0E8CB38CA3264B0 /* HealthKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E69070F1FF772DE3985385D5 /* HealthKitService.swift */; };
 		F27BFDEBDF8185A06C051C79 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDC8F2AB5391766292C1935D /* AppSettings.swift */; };
 /* End PBXBuildFile section */
@@ -128,6 +123,16 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
+				Models/AppSettings.swift,
+				Models/BlockCondition.swift,
+				Models/Rule.swift,
+				Models/UnlockAttempt.swift,
+				Models/UnlockChallenge.swift,
+				Persistence/RuleStore.swift,
+				Services/BlockingService.swift,
+				Services/DeviceActivityService.swift,
+				Services/HealthKitService.swift,
+				Services/WakeUpDetector.swift,
 			);
 			target = D52906CC2FE67D9D0005F066 /* FrictionGate */;
 		};
@@ -503,7 +508,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1620;
-				LastUpgradeCheck = 1620;
+				LastUpgradeCheck = 2650;
 				TargetAttributes = {
 					D52906CC2FE67D9D0005F066 = {
 						CreatedOnToolsVersion = 16.2;
@@ -611,11 +616,6 @@
 				547BF0FD02294851C0F59A05 /* BlockingService.swift in Sources */,
 				AC143D9F03517CE4FA03C22D /* DeviceActivityService.swift in Sources */,
 				0A5CB93F2B77C8BE66376BD5 /* WakeUpDetector.swift in Sources */,
-				87765DA089465D5CE3224CD0 /* StepMonitor.swift in Sources */,
-				BA902939C744D89EDE6DCA11 /* HomeViewModel.swift in Sources */,
-				D0227F25B41C65B4F3D6046B /* RuleBuilderViewModel.swift in Sources */,
-				67ED55F6C21FF9D1A6504BFF /* UnlockViewModel.swift in Sources */,
-				D694D7C2509E890E069E2A56 /* WakeUpViewModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -720,6 +720,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 5LV8BN8Q4Q;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -743,6 +744,7 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -783,6 +785,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = 5LV8BN8Q4Q;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -799,6 +802,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				VALIDATE_PRODUCT = YES;
 			};
@@ -811,9 +815,8 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = FrictionGate/FrictionGate.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_ASSET_PATHS = "\"FrictionGate/Preview Content\"";
-				DEVELOPMENT_TEAM = 5LV8BN8Q4Q;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = FrictionGate/Info.plist;
@@ -847,9 +850,8 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = FrictionGate/FrictionGate.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_ASSET_PATHS = "\"FrictionGate/Preview Content\"";
-				DEVELOPMENT_TEAM = 5LV8BN8Q4Q;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = FrictionGate/Info.plist;
@@ -882,7 +884,6 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 5LV8BN8Q4Q;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
 				MARKETING_VERSION = 1.0;
@@ -901,7 +902,6 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 5LV8BN8Q4Q;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
 				MARKETING_VERSION = 1.0;
@@ -919,7 +919,6 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 5LV8BN8Q4Q;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.debrajpal.FrictionGateUITests;
@@ -936,7 +935,6 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 5LV8BN8Q4Q;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.debrajpal.FrictionGateUITests;
@@ -954,7 +952,6 @@
 				CODE_SIGN_ENTITLEMENTS = FrictionGateMonitor/FrictionGateMonitor.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 5LV8BN8Q4Q;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = FrictionGateMonitor/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = FrictionGateMonitor;
@@ -981,7 +978,6 @@
 				CODE_SIGN_ENTITLEMENTS = FrictionGateMonitor/FrictionGateMonitor.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 5LV8BN8Q4Q;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = FrictionGateMonitor/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = FrictionGateMonitor;
@@ -1008,7 +1004,6 @@
 				CODE_SIGN_ENTITLEMENTS = FrictionGateShield/FrictionGateShield.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 5LV8BN8Q4Q;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = FrictionGateShield/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = FrictionGateShield;
@@ -1035,7 +1030,6 @@
 				CODE_SIGN_ENTITLEMENTS = FrictionGateShield/FrictionGateShield.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 5LV8BN8Q4Q;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = FrictionGateShield/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = FrictionGateShield;
@@ -1062,7 +1056,6 @@
 				CODE_SIGN_ENTITLEMENTS = FrictionGateShieldConfig/FrictionGateShieldConfig.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 5LV8BN8Q4Q;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = FrictionGateShieldConfig/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = FrictionGateShieldConfig;
@@ -1088,7 +1081,6 @@
 				CODE_SIGN_ENTITLEMENTS = FrictionGateShieldConfig/FrictionGateShieldConfig.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 5LV8BN8Q4Q;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = FrictionGateShieldConfig/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = FrictionGateShieldConfig;

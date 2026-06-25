@@ -5,7 +5,7 @@ struct ChallengePickerView: View {
     @ObservedObject var vm: RuleBuilderViewModel
 
     @State private var stepsEnabled  = false
-    @State private var stepsRequired = 1_000
+    @State private var stepsRequired = 200
 
     @State private var mathsEnabled = false
     @State private var mathsCount   = 5
@@ -18,13 +18,20 @@ struct ChallengePickerView: View {
 
     @State private var reasonEnabled = false
 
+    private enum ChallengeKind: CaseIterable, Hashable {
+        case wait
+        case writeReason
+        case typeSentence
+        case maths
+        case steps
+    }
+
     var body: some View {
         List {
-            stepsSection
-            mathsSection
-            typeSentenceSection
-            waitSection
-            writeReasonSection
+            orderingNoteSection
+            ForEach(orderedChallengeKinds, id: \.self) { kind in
+                challengeSection(for: kind)
+            }
         }
         .inkBackground()
         .listStyle(.insetGrouped)
@@ -42,6 +49,17 @@ struct ChallengePickerView: View {
 
     // MARK: - Sections
 
+    private var orderingNoteSection: some View {
+        Section {
+            Text("Top is easiest. Difficulty increases as you go down.")
+                .font(.footnote)
+                .foregroundStyle(Color.appTertiary)
+                .padding(.vertical, 2)
+        }
+        .surfaceRow()
+        .listRowSeparatorTint(Color.appBorder)
+    }
+
     private var stepsSection: some View {
         Section {
             Toggle("Require steps", isOn: $stepsEnabled)
@@ -50,8 +68,7 @@ struct ChallengePickerView: View {
                     .foregroundStyle(Color.appPrimary)
             }
         } header: {
-            Label("Steps Challenge", systemImage: "figure.walk")
-                .foregroundStyle(Color.appSecondary)
+            sectionHeader("Steps Challenge", icon: "figure.walk", challenge: .steps(required: stepsRequired))
         } footer: {
             Text("Walk a set number of steps before the block lifts.")
                 .foregroundStyle(Color.appTertiary)
@@ -68,8 +85,7 @@ struct ChallengePickerView: View {
                     .foregroundStyle(Color.appPrimary)
             }
         } header: {
-            Label("Maths Challenge", systemImage: "function")
-                .foregroundStyle(Color.appSecondary)
+            sectionHeader("Maths Challenge", icon: "function", challenge: .maths(count: mathsCount))
         } footer: {
             Text("Solve arithmetic problems. Difficulty scales with escalation.")
                 .foregroundStyle(Color.appTertiary)
@@ -87,8 +103,7 @@ struct ChallengePickerView: View {
                     .foregroundStyle(Color.appPrimary)
             }
         } header: {
-            Label("Type Sentence", systemImage: "keyboard")
-                .foregroundStyle(Color.appSecondary)
+            sectionHeader("Type Sentence", icon: "keyboard", challenge: .typeSentence(sentence: effectiveTypeSentence))
         } footer: {
             Text("Must be typed exactly, character by character. Paste is disabled.")
                 .foregroundStyle(Color.appTertiary)
@@ -105,8 +120,7 @@ struct ChallengePickerView: View {
                     .foregroundStyle(Color.appPrimary)
             }
         } header: {
-            Label("Wait Challenge", systemImage: "timer")
-                .foregroundStyle(Color.appSecondary)
+            sectionHeader("Wait Challenge", icon: "timer", challenge: .wait(minutes: waitMinutes))
         } footer: {
             Text("Countdown timer. The app stays locked until it reaches zero.")
                 .foregroundStyle(Color.appTertiary)
@@ -119,8 +133,7 @@ struct ChallengePickerView: View {
         Section {
             Toggle("Require written justification", isOn: $reasonEnabled)
         } header: {
-            Label("Write a Reason", systemImage: "pencil.and.list.clipboard")
-                .foregroundStyle(Color.appSecondary)
+            sectionHeader("Write a Reason", icon: "pencil.and.list.clipboard", challenge: .writeReason)
         } footer: {
             Text("Ask for a short reason why you want to unlock. Adds friction through self-reflection.")
                 .foregroundStyle(Color.appTertiary)
@@ -131,6 +144,48 @@ struct ChallengePickerView: View {
 
     // MARK: - Sync
 
+    private var orderedChallengeKinds: [ChallengeKind] {
+        ChallengeKind.allCases.sorted { lhs, rhs in
+            let left = previewChallenge(for: lhs)
+            let right = previewChallenge(for: rhs)
+            if left.difficultyScore == right.difficultyScore {
+                return left.displayName < right.displayName
+            }
+            return left.difficultyScore < right.difficultyScore
+        }
+    }
+
+    @ViewBuilder
+    private func challengeSection(for kind: ChallengeKind) -> some View {
+        switch kind {
+        case .steps:
+            stepsSection
+        case .maths:
+            mathsSection
+        case .typeSentence:
+            typeSentenceSection
+        case .wait:
+            waitSection
+        case .writeReason:
+            writeReasonSection
+        }
+    }
+
+    private func previewChallenge(for kind: ChallengeKind) -> UnlockChallenge {
+        switch kind {
+        case .steps:
+            return .steps(required: stepsRequired)
+        case .maths:
+            return .maths(count: mathsCount)
+        case .typeSentence:
+            return .typeSentence(sentence: effectiveTypeSentence)
+        case .wait:
+            return .wait(minutes: waitMinutes)
+        case .writeReason:
+            return .writeReason
+        }
+    }
+
     private func sync() {
         var challenges: [UnlockChallenge] = []
         if stepsEnabled { challenges.append(.steps(required: stepsRequired)) }
@@ -140,7 +195,12 @@ struct ChallengePickerView: View {
         }
         if waitEnabled   { challenges.append(.wait(minutes: waitMinutes)) }
         if reasonEnabled { challenges.append(.writeReason) }
-        vm.challenges = challenges
+        vm.challenges = challenges.sorted { lhs, rhs in
+            if lhs.difficultyScore == rhs.difficultyScore {
+                return lhs.displayName < rhs.displayName
+            }
+            return lhs.difficultyScore < rhs.difficultyScore
+        }
     }
 
     private func loadFromVM() {
@@ -152,6 +212,30 @@ struct ChallengePickerView: View {
             case .wait(let m):         waitEnabled  = true;  waitMinutes = m
             case .writeReason:         reasonEnabled = true
             }
+        }
+    }
+
+    private var effectiveTypeSentence: String {
+        let trimmed = typeSentence.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? "Type a sentence" : typeSentence
+    }
+
+    private func sectionHeader(_ title: String, icon: String, challenge: UnlockChallenge) -> some View {
+        HStack(spacing: 8) {
+            Label(title, systemImage: icon)
+                .foregroundStyle(Color.appSecondary)
+            Spacer(minLength: 8)
+            ThemeBadge(text: challenge.difficultyTier.compactLabel,
+                       color: color(for: challenge.difficultyTier))
+        }
+    }
+
+    private func color(for tier: ChallengeDifficultyTier) -> Color {
+        switch tier {
+        case .easy: return Color.appSuccess
+        case .medium: return Color.appAccent
+        case .hard: return Color.appWarning
+        case .extreme: return Color.appDestructive
         }
     }
 }

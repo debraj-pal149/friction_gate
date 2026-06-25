@@ -54,6 +54,7 @@ final class RuleStore: ObservableObject {
     // MARK: - Init
 
     init() {
+        startupLog("RuleStore init start")
         // Fast synchronous loads — these only touch simple JSON blobs.
         loadAttempts()
         loadSettings()
@@ -66,6 +67,7 @@ final class RuleStore: ObservableObject {
         // without waiting for NSKeyedUnarchiver to process FamilyActivitySelection.
         Task { [weak self] in
             guard let self else { return }
+            self.startupLog("RuleStore background decode start")
             let (decoded, selMap) = await Self.backgroundDecodeRules(
                 rulesData:      rulesSnapshot,
                 selectionsData: selectionsSnapshot
@@ -73,7 +75,9 @@ final class RuleStore: ObservableObject {
             self.cachedSelectionMap = selMap
             self.rules              = decoded
             self.isLoadingRules     = false
+            self.startupLog("RuleStore background decode end | rules=\(decoded.count)")
         }
+        startupLog("RuleStore init end")
     }
 
     // MARK: - Background decode (runs off main actor)
@@ -112,6 +116,7 @@ final class RuleStore: ObservableObject {
     // MARK: - Load (for manual refresh, e.g. foreground)
 
     func load() {
+        startupLog("RuleStore load start")
         let rulesSnapshot      = defaults.data(forKey: Keys.rules)
         let selectionsSnapshot = defaults.data(forKey: Keys.selections)
         loadAttempts()
@@ -124,6 +129,7 @@ final class RuleStore: ObservableObject {
             )
             self.cachedSelectionMap = selMap
             self.rules              = decoded
+            self.startupLog("RuleStore load end | rules=\(decoded.count)")
         }
     }
 
@@ -256,5 +262,9 @@ final class RuleStore: ObservableObject {
         } catch {
             print("[RuleStore] Failed to save app settings: \(error)")
         }
+    }
+
+    private func startupLog(_ message: String) {
+        print("[Startup \(Date().timeIntervalSince1970)] \(message)")
     }
 }
