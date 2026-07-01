@@ -45,6 +45,11 @@ final class RuleBuilderViewModel: ObservableObject {
         activitySelection.applicationTokens.first
     }
 
+    /// All selected application tokens from FamilyActivityPicker.
+    var selectedApplicationTokens: [ApplicationToken] {
+        Array(activitySelection.applicationTokens)
+    }
+
     // MARK: - Block conditions
 
     @Published var conditions: [BlockCondition] = []
@@ -159,7 +164,13 @@ final class RuleBuilderViewModel: ObservableObject {
     var reviewSummary: String {
         guard isValid else { return "Complete all steps to preview the rule." }
 
-        let app    = appDisplayName.isEmpty ? "The selected app" : appDisplayName
+        let appCount = selectedApplicationTokens.count
+        let app: String
+        if appCount > 1 {
+            app = "\(appCount) selected apps"
+        } else {
+            app = appDisplayName.isEmpty ? "The selected app" : appDisplayName
+        }
         let conds  = conditions.map(\.displayDescription).joined(separator: ", and ")
         let challs = challengesSortedByDifficulty.map(\.shortDescription).joined(separator: " + ")
 
@@ -188,30 +199,36 @@ final class RuleBuilderViewModel: ObservableObject {
             return false
         }
 
-        var rule = Rule(
-            appDisplayName: appDisplayName,
-            appBundleID: appBundleID,
-            conditions: conditions,
-            challenges: challengesSortedByDifficulty,
-            escalationEnabled: escalationEnabled,
-            escalationWindowMinutes: escalationWindowMinutes,
-            sessionDurationMinutes: sessionDurationMinutes
-        )
-        // Attach the selection so RuleStore can archive ApplicationToken correctly.
-        rule.activitySelection = activitySelection
+        let tokens = selectedApplicationTokens
+        guard !tokens.isEmpty else { return false }
 
-        // `ruleStore.add` calls `save()` which calls `saveSelectionMap()`,
-        // which archives the FamilyActivitySelection for this rule.
-        ruleStore.add(rule)
+        for token in tokens {
+            var rule = Rule(
+                appDisplayName: appDisplayName,
+                appBundleID: appBundleID,
+                conditions: conditions,
+                challenges: challengesSortedByDifficulty,
+                escalationEnabled: escalationEnabled,
+                escalationWindowMinutes: escalationWindowMinutes,
+                sessionDurationMinutes: sessionDurationMinutes
+            )
+            // Each created rule keeps exactly one app token so rule rows/unlock flow
+            // remain one-app-per-rule throughout the app.
+            rule.activitySelection = makeSingleAppSelection(for: token)
 
-        // Register DeviceActivity schedules for time-based conditions.
-        deviceActivityService.registerSchedules(for: rule)
+            // `ruleStore.add` calls `save()` which calls `saveSelectionMap()`,
+            // which archives the FamilyActivitySelection for this rule.
+            ruleStore.add(rule)
 
-        // For unconditional rules (no time/wake/sleep/limit conditions) the shield
-        // should be active immediately.  Write the flag to App Group UserDefaults so
-        // HomeViewModel.refreshShieldStates() sees the correct state right away.
-        if rule.conditions.isEmpty {
-            BlockingService.shared.applyShield(for: rule)
+            // Register DeviceActivity schedules for time-based conditions.
+            deviceActivityService.registerSchedules(for: rule)
+
+            // For unconditional rules (no time/wake/sleep/limit conditions) the shield
+            // should be active immediately.  Write the flag to App Group UserDefaults so
+            // HomeViewModel.refreshShieldStates() sees the correct state right away.
+            if rule.conditions.isEmpty {
+                BlockingService.shared.applyShield(for: rule)
+            }
         }
 
         reset()
@@ -236,8 +253,8 @@ final class RuleBuilderViewModel: ObservableObject {
 
     // MARK: - Time-window conflict detection
 
-    /// Returns the first overlap conflict message when creating a new rule for the
-    /// same app with overlapping time-window conditions.
+    /// Returns the first overlap conflict message when creating new rule(s) for the
+    /// same app(s) with overlapping time-window conditions.
     private func firstTimeWindowConflictMessage() -> String? {
         let proposedWindows = conditions.compactMap { condition -> (DateComponents, DateComponents, DaySet)? in
             guard case let .timeWindow(start, end, days) = condition else { return nil }
@@ -245,37 +262,39 @@ final class RuleBuilderViewModel: ObservableObject {
         }
         guard !proposedWindows.isEmpty else { return nil }
 
-        guard isAppSelected else { return nil }
+        let tokens = selectedApplicationTokens
+        guard !tokens.isEmpty else { return nil }
 
-        for existingRule in ruleStore.rules {
-            guard isSameSelectedApp(as: existingRule) else { continue }
+        for selectedToken in tokens {
+            for existingRule in ruleStore.rules {
+                guard isSameSelectedApp(as: existingRule, selectedToken: selectedToken) else { continue }
 
-            let existingWindows = existingRule.conditions.compactMap { condition -> (DateComponents, DateComponents, DaySet)? in
-                guard case let .timeWindow(start, end, days) = condition else { return nil }
-                return (start, end, days)
-            }
-            guard !existingWindows.isEmpty else { continue }
+                let existingWindows = existingRule.conditions.compactMap { condition -> (DateComponents, DateComponents, DaySet)? in
+                    guard case let .timeWindow(start, end, days) = condition else { return nil }
+                    return (start, end, days)
+                }
+                guard !existingWindows.isEmpty else { continue }
 
-            for proposed in proposedWindows {
-                for existing in existingWindows where windowsOverlap(lhs: proposed, rhs: existing) {
-                    let existingRuleName = existingRule.appDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
-                    let label = existingRuleName.isEmpty
-                        ? "Rule \(existingRule.id.uuidString.prefix(6))"
-                        : existingRuleName
-                    let existingSummary = BlockCondition
-                        .timeWindow(start: existing.0, end: existing.1, days: existing.2)
-                        .displayDescription
+                for proposed in proposedWindows {
+                    for existing in existingWindows where windowsOverlap(lhs: proposed, rhs: existing) {
+                        let existingRuleName = existingRule.appDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
+                        let label = existingRuleName.isEmpty
+                            ? "Rule \(existingRule.id.uuidString.prefix(6))"
+                            : existingRuleName
+                        let existingSummary = BlockCondition
+                            .timeWindow(start: existing.0, end: existing.1, days: existing.2)
+                            .displayDescription
 
-                    return "Cannot continue: this app already has rule '\(label)' with an overlapping time window (\(existingSummary)). Adjust the time/days to proceed."
+                        return "Cannot continue: one of the selected apps already has rule '\(label)' with an overlapping time window (\(existingSummary)). Adjust the time/days to proceed."
+                    }
                 }
             }
         }
         return nil
     }
 
-    private func isSameSelectedApp(as existingRule: Rule) -> Bool {
-        if let selectedToken = applicationToken,
-           let existingToken = existingRule.appToken,
+    private func isSameSelectedApp(as existingRule: Rule, selectedToken: ApplicationToken) -> Bool {
+        if let existingToken = existingRule.appToken,
            selectedToken == existingToken {
             return true
         }
@@ -287,6 +306,12 @@ final class RuleBuilderViewModel: ObservableObject {
             return true
         }
         return false
+    }
+
+    private func makeSingleAppSelection(for token: ApplicationToken) -> FamilyActivitySelection {
+        var selection = FamilyActivitySelection()
+        selection.applicationTokens = [token]
+        return selection
     }
 
     private func windowsOverlap(

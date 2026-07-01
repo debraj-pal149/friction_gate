@@ -20,7 +20,7 @@ struct AppPickerView: View {
     private var pickerContent: some View {
         FamilyActivityPicker(
             headerText: "Select the app you want to block",
-            footerText: "One app per rule.",
+            footerText: "You can select multiple apps. The same rule setup is applied to each app.",
             selection: $vm.activitySelection
         )
         .frame(maxWidth: .infinity, maxHeight: .infinity)

@@ -13,6 +13,7 @@ struct RuleRowView: View {
     var body: some View {
         HStack(alignment: .center, spacing: 10) {
             AppIconView(token: rule.appToken, appName: rule.appDisplayName, size: 47)
+                .id("icon-\(rule.id.uuidString)")
                 .overlay(
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
                         .stroke(Color.appBorder, lineWidth: 0.5)
@@ -70,6 +71,7 @@ struct RuleRowView: View {
                 .minimumScaleFactor(0.82)
                 .scaleEffect(0.9, anchor: .leading)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .id("title-\(rule.id.uuidString)")
         } else {
             Text(rule.appDisplayName.isEmpty ? "App" : rule.appDisplayName)
                 .font(.system(size: 13, weight: .medium))

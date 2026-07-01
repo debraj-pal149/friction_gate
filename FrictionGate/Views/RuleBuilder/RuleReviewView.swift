@@ -109,33 +109,56 @@ struct RuleReviewView: View {
 
     private var appHeaderSection: some View {
         Section {
-            HStack(spacing: 16) {
-                AppIconView(token: vm.applicationToken,
-                            appName: vm.appDisplayName,
-                            size: 64)
-
-                VStack(alignment: .leading, spacing: 4) {
-                    if let token = vm.applicationToken {
-                        Label(token)
-                            .labelStyle(.titleOnly)
-                            .font(.title3.bold())
-                            .foregroundStyle(Color.appPrimary)
-                    } else {
-                        Text(vm.appDisplayName.isEmpty ? "Selected App" : vm.appDisplayName)
-                            .font(.title3.bold())
-                            .foregroundStyle(Color.appPrimary)
+            if vm.selectedApplicationTokens.count > 1 {
+                HStack(spacing: 14) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(Color.appAccentFill)
+                            .frame(width: 64, height: 64)
+                        Image(systemName: "square.stack.3d.up.fill")
+                            .font(.system(size: 24, weight: .semibold))
+                            .foregroundStyle(Color.appAccent)
                     }
-                    if !vm.appDisplayName.isEmpty {
-                        Text(vm.appDisplayName)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("\(vm.selectedApplicationTokens.count) Apps Selected")
+                            .font(.title3.bold())
+                            .foregroundStyle(Color.appPrimary)
+                        Text("The same rule settings will be created for each selected app.")
                             .font(.caption)
                             .foregroundStyle(Color.appSecondary)
                     }
-                    Text("Rule applies to this app")
-                        .font(.caption)
-                        .foregroundStyle(Color.appTertiary)
                 }
+                .padding(.vertical, 6)
+            } else {
+                HStack(spacing: 16) {
+                    AppIconView(token: vm.applicationToken,
+                                appName: vm.appDisplayName,
+                                size: 64)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        if let token = vm.applicationToken {
+                            Label(token)
+                                .labelStyle(.titleOnly)
+                                .font(.title3.bold())
+                                .foregroundStyle(Color.appPrimary)
+                        } else {
+                            Text(vm.appDisplayName.isEmpty ? "Selected App" : vm.appDisplayName)
+                                .font(.title3.bold())
+                                .foregroundStyle(Color.appPrimary)
+                        }
+                        if !vm.appDisplayName.isEmpty {
+                            Text(vm.appDisplayName)
+                                .font(.caption)
+                                .foregroundStyle(Color.appSecondary)
+                        }
+                        Text("Rule applies to this app")
+                            .font(.caption)
+                            .foregroundStyle(Color.appTertiary)
+                    }
+                }
+                .padding(.vertical, 6)
             }
-            .padding(.vertical, 6)
         }
         .surfaceRow()
     }

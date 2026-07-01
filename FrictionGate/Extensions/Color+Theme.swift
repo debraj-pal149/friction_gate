@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 // MARK: - Friction Design System
 
@@ -9,7 +10,12 @@ extension Color {
     static var appAccent: Color       { AppColors.primaryAccent }
     static var appAccentFill: Color   { AppColors.accentWash.opacity(0.22) }
     static var appAccentBright: Color { AppColors.featureAccent }
-    static var appOnAccent: Color     { Color.white }
+    static var appOnAccent: Color     {
+        Color(uiColor: UIColor { trait in
+            let accent = AppColors.uiPrimaryAccent.resolvedColor(with: trait)
+            return accent.preferredOnColor
+        })
+    }
 
     static var appPrimary: Color   { AppColors.textPrimary }
     static var appSecondary: Color { AppColors.textSecondary }
@@ -24,6 +30,33 @@ extension Color {
     static var appDestructive: Color { AppColors.destructive }
     static var appSuccess: Color     { AppColors.success }
     static var appWarning: Color     { AppColors.warning }
+}
+
+private extension UIColor {
+    /// Returns either black or white based on perceived luminance of this color.
+    var preferredOnColor: UIColor {
+        let resolved = self.resolvedColor(with: UITraitCollection.current)
+
+        var r: CGFloat = 0
+        var g: CGFloat = 0
+        var b: CGFloat = 0
+        var a: CGFloat = 0
+        guard resolved.getRed(&r, green: &g, blue: &b, alpha: &a) else {
+            return .white
+        }
+
+        // Convert sRGB to linear-light for more accurate contrast estimation.
+        func linearize(_ c: CGFloat) -> CGFloat {
+            c <= 0.04045 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4)
+        }
+
+        let luminance = 0.2126 * linearize(r) +
+                        0.7152 * linearize(g) +
+                        0.0722 * linearize(b)
+
+        // Bright accents get dark text; dark accents keep white text.
+        return luminance > 0.54 ? .black : .white
+    }
 }
 
 // MARK: - List helpers

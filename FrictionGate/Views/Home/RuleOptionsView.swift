@@ -13,13 +13,37 @@ struct RuleOptionsView: View {
 
     @State private var showDeleteConfirmation = false
     @State private var typedText = ""
+    @State private var now = Date()
+    @State private var deleteCooldownEndsAt: Date? = nil
 
-    private let deletePhrase = "I want to permanently delete this rule"
+    private let deleteCooldownSeconds: TimeInterval = 60
+    private let deletePhrase = "I understand that deleting this rule means future me loses a hard-earned guardrail, distractions get a free buffet, and my focus streak may cry dramatically in the corner. I am deleting this intentionally, not impulsively, and I accept that rebuilding this discipline later will take real effort, patience, and a little humility."
 
     private var canDelete: Bool {
         let typed  = typedText.trimmingCharacters(in: .whitespaces).lowercased()
         let target = deletePhrase.trimmingCharacters(in: .whitespaces).lowercased()
         return !typed.isEmpty && typed == target
+    }
+
+    private var cooldownRemainingSeconds: Int {
+        guard let endsAt = deleteCooldownEndsAt else { return 0 }
+        return max(0, Int(ceil(endsAt.timeIntervalSince(now))))
+    }
+
+    private var isDeleteCooldownActive: Bool {
+        cooldownRemainingSeconds > 0
+    }
+
+    private var cooldownTimeLabel: String {
+        let total = cooldownRemainingSeconds
+        let minutes = total / 60
+        let seconds = total % 60
+        return String(format: "%d:%02d", minutes, seconds)
+    }
+
+    private var cooldownProgress: Double {
+        let elapsed = deleteCooldownSeconds - Double(cooldownRemainingSeconds)
+        return min(1, max(0, elapsed / deleteCooldownSeconds))
     }
 
     var body: some View {
@@ -42,6 +66,9 @@ struct RuleOptionsView: View {
                     Button("Done") { dismiss() }
                         .foregroundStyle(Color.appAccent)
                 }
+            }
+            .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { tick in
+                now = tick
             }
         }
     }
@@ -245,6 +272,9 @@ struct RuleOptionsView: View {
     private var deleteEntrySection: some View {
         Section {
             Button(role: .destructive) {
+                typedText = ""
+                now = Date()
+                deleteCooldownEndsAt = Date().addingTimeInterval(deleteCooldownSeconds)
                 withAnimation(.easeInOut(duration: 0.2)) {
                     showDeleteConfirmation = true
                 }
@@ -266,60 +296,82 @@ struct RuleOptionsView: View {
 
     private var deleteConfirmationSection: some View {
         Section {
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Type the following to confirm:")
-                    .font(.footnote)
-                    .foregroundStyle(Color.appSecondary)
-
-                Text(deletePhrase)
-                    .font(.system(.subheadline, design: .monospaced).bold())
-                    .foregroundStyle(Color.appPrimary)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 8)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color.appSurface3)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-
-                let target  = Array(deletePhrase.trimmingCharacters(in: .whitespaces).lowercased())
-                let typed   = Array(typedText.trimmingCharacters(in: .whitespaces).lowercased())
-                let matched = zip(typed, target).filter { $0 == $1 }.count
-                HStack(spacing: 6) {
-                    Image(systemName: canDelete ? "checkmark.circle.fill" : "circle")
-                        .foregroundStyle(canDelete ? Color.appSuccess : Color.appTertiary)
-                    Text(canDelete
-                         ? "Phrase matched. Confirm below"
-                         : "\(matched) / \(target.count) characters")
-                        .font(.caption)
-                        .foregroundStyle(canDelete ? Color.appSuccess : Color.appSecondary)
-                }
-            }
-            .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 4, trailing: 16))
-
-            PasteBlockingTextField(
-                placeholder: "Type here…",
-                text: $typedText,
-                autocapitalizationType: .none
-            )
-            .frame(height: 36)
-            .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 12, trailing: 16))
-
-                    Button(role: .destructive) {
-                        onDelete()
-                        dismiss()
-                    } label: {
-                        HStack {
-                            Spacer()
-                            Label("Confirm Delete", systemImage: "trash.fill")
-                                .font(.headline)
-                            Spacer()
-                        }
+            if isDeleteCooldownActive {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Cooldown for reconsideration")
+                        .font(.subheadline.bold())
+                        .foregroundStyle(Color.appPrimary)
+                    Text("Take a breath before doing something dramatic. Typing unlocks when the timer ends.")
+                        .font(.footnote)
+                        .foregroundStyle(Color.appSecondary)
+                    HStack(spacing: 10) {
+                        Image(systemName: "hourglass")
+                            .foregroundStyle(Color.appWarning)
+                        Text(cooldownTimeLabel)
+                            .font(.system(.title3, design: .monospaced).bold())
+                            .foregroundStyle(Color.appPrimary)
                     }
-                    .disabled(!canDelete)
-                    .listRowBackground(canDelete ? Color.appDestructive : Color.appSurface2)
-                    .foregroundStyle(canDelete ? Color.appOnAccent : Color.appTertiary)
+                    ProgressView(value: cooldownProgress)
+                        .tint(Color.appWarning)
+                }
+                .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
+            } else {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Type the following to confirm:")
+                        .font(.footnote)
+                        .foregroundStyle(Color.appSecondary)
+
+                    Text(deletePhrase)
+                        .font(.system(.subheadline, design: .monospaced).bold())
+                        .foregroundStyle(Color.appPrimary)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 8)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.appSurface3)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                    let target  = Array(deletePhrase.trimmingCharacters(in: .whitespaces).lowercased())
+                    let typed   = Array(typedText.trimmingCharacters(in: .whitespaces).lowercased())
+                    let matched = zip(typed, target).filter { $0 == $1 }.count
+                    HStack(spacing: 6) {
+                        Image(systemName: canDelete ? "checkmark.circle.fill" : "circle")
+                            .foregroundStyle(canDelete ? Color.appSuccess : Color.appTertiary)
+                        Text(canDelete
+                             ? "Phrase matched. Confirm below"
+                             : "\(matched) / \(target.count) characters")
+                            .font(.caption)
+                            .foregroundStyle(canDelete ? Color.appSuccess : Color.appSecondary)
+                    }
+                }
+                .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 4, trailing: 16))
+
+                PasteBlockingTextField(
+                    placeholder: "Type here...",
+                    text: $typedText,
+                    autocapitalizationType: .none
+                )
+                .frame(height: 36)
+                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 12, trailing: 16))
+
+                Button(role: .destructive) {
+                    onDelete()
+                    dismiss()
+                } label: {
+                    HStack {
+                        Spacer()
+                        Label("Confirm Delete", systemImage: "trash.fill")
+                            .font(.headline)
+                        Spacer()
+                    }
+                }
+                .disabled(!canDelete)
+                .listRowBackground(canDelete ? Color.appDestructive : Color.appSurface2)
+                .foregroundStyle(canDelete ? Color.appOnAccent : Color.appTertiary)
+            }
 
             Button("Cancel") {
                 typedText = ""
+                deleteCooldownEndsAt = nil
                 withAnimation(.easeInOut(duration: 0.2)) {
                     showDeleteConfirmation = false
                 }
