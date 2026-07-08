@@ -15,8 +15,9 @@ import UserNotifications
 /// | `.beforeSleep`      | `DeviceActivitySchedule` computed from sleep time.    |
 /// | `.dailyOpenLimit`   | `DeviceActivitySchedule` (midnight→23:59) with a      |
 /// |                     | `DeviceActivityEvent` whose threshold ≈ maxOpens min. |
-/// | `.afterWakeUp`      | Not registered here — evaluated at runtime by         |
-/// |                     | `WakeUpDetector` + `BlockingService`.                 |
+/// | `.afterWakeUp`      | Wake-window proxy schedule (`fg-wakewindow-<ruleID>`) |
+/// |                     | plus runtime evaluation by `WakeUpDetector` +         |
+/// |                     | `BlockingService`.                                    |
 ///
 /// ## Activity naming convention
 /// All schedules for a rule are named `"fg-<ruleID>-<conditionIndex>"` so the
@@ -37,6 +38,14 @@ final class DeviceActivityService {
     func registerSchedules(for rule: Rule) {
         removeSchedules(for: rule)
         guard rule.isEnforcing, let token = rule.appToken else { return }
+
+        let hasAfterWakeUp = rule.conditions.contains { condition in
+            if case .afterWakeUp = condition { return true }
+            return false
+        }
+        if hasAfterWakeUp {
+            scheduleWakeWindowMonitoring(for: rule, settings: loadAppSettings())
+        }
 
         for (index, condition) in rule.conditions.enumerated() {
             let name = activityName(for: rule.id, index: index)
@@ -70,9 +79,33 @@ final class DeviceActivityService {
                 )
 
             case .afterWakeUp:
-                break  // Runtime-only; no DeviceActivityCenter schedule needed.
+                break  // Wake-window proxy schedule registered above.
             }
         }
+    }
+
+    /// Registers a daily recurring wake-window schedule so the monitor extension
+    /// can evaluate `.afterWakeUp` rules without Friction foregrounding at wake.
+    func scheduleWakeWindowMonitoring(for rule: Rule, settings: AppSettings) {
+        let name = wakeWindowActivityName(for: rule.id)
+        center.stopMonitoring([name])
+
+        let schedule = DeviceActivitySchedule(
+            intervalStart: settings.wakeUpWindowStart,
+            intervalEnd: settings.wakeUpWindowEnd,
+            repeats: true
+        )
+        do {
+            try center.startMonitoring(name, during: schedule)
+        } catch {
+            print("[DeviceActivityService] scheduleWakeWindowMonitoring failed: \(error)")
+        }
+    }
+
+    /// Canonical name for wake-window proxy activities.
+    /// Must start with `"fg-wakewindow-"` so the monitor extension can identify them.
+    func wakeWindowActivityName(for ruleID: UUID) -> DeviceActivityName {
+        DeviceActivityName("fg-wakewindow-\(ruleID.uuidString)")
     }
 
     /// Removes all `DeviceActivityCenter` schedules for `rule`.
@@ -81,7 +114,7 @@ final class DeviceActivityService {
     func removeSchedules(for rule: Rule) {
         // Probe the first 20 indices — rules won't realistically have more conditions.
         let names = (0..<20).map { activityName(for: rule.id, index: $0) }
-        center.stopMonitoring(names)
+        center.stopMonitoring(names + [wakeWindowActivityName(for: rule.id)])
         // Also cancel any pending session-relock schedule.
         cancelSessionRelock(for: rule.id)
     }
@@ -212,5 +245,13 @@ final class DeviceActivityService {
         dc.hour   = clamped / 60
         dc.minute = clamped % 60
         return dc
+    }
+
+    private func loadAppSettings() -> AppSettings {
+        guard let defaults = UserDefaults(suiteName: "group.com.debrajpal.frictiongate"),
+              let data = defaults.data(forKey: "app_settings"),
+              let settings = try? JSONDecoder().decode(AppSettings.self, from: data)
+        else { return .default }
+        return settings
     }
 }

@@ -23,6 +23,7 @@ final class RuleBuilderViewModel: ObservableObject {
 
     private let ruleStore: RuleStore
     private let deviceActivityService: DeviceActivityService
+    private let wakeUpDetector: WakeUpDetector
 
     // MARK: - Step tracking
 
@@ -78,9 +79,11 @@ final class RuleBuilderViewModel: ObservableObject {
 
     init(
         ruleStore: RuleStore,
+        wakeUpDetector: WakeUpDetector,
         deviceActivityService: DeviceActivityService = .shared
     ) {
         self.ruleStore = ruleStore
+        self.wakeUpDetector = wakeUpDetector
         self.deviceActivityService = deviceActivityService
     }
 
@@ -223,12 +226,11 @@ final class RuleBuilderViewModel: ObservableObject {
             // Register DeviceActivity schedules for time-based conditions.
             deviceActivityService.registerSchedules(for: rule)
 
-            // For unconditional rules (no time/wake/sleep/limit conditions) the shield
-            // should be active immediately.  Write the flag to App Group UserDefaults so
-            // HomeViewModel.refreshShieldStates() sees the correct state right away.
-            if rule.conditions.isEmpty {
-                BlockingService.shared.applyShield(for: rule)
-            }
+            // Evaluate all condition types immediately so shields apply on save.
+            BlockingService.shared.evaluateAndApplyShield(
+                for: rule,
+                wakeUpDetector: wakeUpDetector
+            )
         }
 
         reset()

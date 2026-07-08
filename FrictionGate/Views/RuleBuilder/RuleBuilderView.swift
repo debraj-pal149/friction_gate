@@ -6,8 +6,11 @@ struct RuleBuilderView: View {
     @StateObject private var vm: RuleBuilderViewModel
     @Environment(\.dismiss) private var dismiss
 
-    init(ruleStore: RuleStore) {
-        _vm = StateObject(wrappedValue: RuleBuilderViewModel(ruleStore: ruleStore))
+    init(ruleStore: RuleStore, wakeUpDetector: WakeUpDetector) {
+        _vm = StateObject(wrappedValue: RuleBuilderViewModel(
+            ruleStore: ruleStore,
+            wakeUpDetector: wakeUpDetector
+        ))
     }
 
     var body: some View {

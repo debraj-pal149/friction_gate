@@ -17,7 +17,7 @@ struct RuleOptionsView: View {
     @State private var deleteCooldownEndsAt: Date? = nil
 
     private let deleteCooldownSeconds: TimeInterval = 60
-    private let deletePhrase = "I understand that deleting this rule means future me loses a hard-earned guardrail, distractions get a free buffet, and my focus streak may cry dramatically in the corner. I am deleting this intentionally, not impulsively, and I accept that rebuilding this discipline later will take real effort, patience, and a little humility."
+    private let deletePhrase = "I understand deleting this rule means future me loses a hard-earned guardrail and distractions get a free buffet. I am deleting this intentionally, not impulsively, and I accept that rebuilding this discipline later will take real effort, patience, and a little humility."
 
     private var canDelete: Bool {
         let typed  = typedText.trimmingCharacters(in: .whitespaces).lowercased()
@@ -345,12 +345,30 @@ struct RuleOptionsView: View {
                 }
                 .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 4, trailing: 16))
 
-                PasteBlockingTextField(
-                    placeholder: "Type here...",
-                    text: $typedText,
-                    autocapitalizationType: .none
+                ZStack(alignment: .topLeading) {
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(Color.appSurface3)
+                    if typedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        Text("Type here...")
+                            .font(.footnote)
+                            .foregroundStyle(Color.appTertiary)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 12)
+                    }
+                    PasteBlockingTextView(
+                        text: $typedText,
+                        font: .systemFont(ofSize: 15),
+                        autocapitalizationType: .none
+                    )
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                }
+                .frame(minHeight: 140, maxHeight: 200)
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .stroke(Color.appBorder, lineWidth: 0.7)
                 )
-                .frame(height: 36)
                 .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 12, trailing: 16))
 
                 Button(role: .destructive) {

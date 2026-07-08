@@ -172,7 +172,7 @@ struct HomeView: View {
     private func sheetContent(for sheet: HomeSheet) -> some View {
         switch sheet {
         case .builder:
-            RuleBuilderView(ruleStore: ruleStore)
+            RuleBuilderView(ruleStore: ruleStore, wakeUpDetector: wakeUpVM.wakeUpDetector)
 
         case .settings:
             GlobalSettingsView(vm: wakeUpVM)
