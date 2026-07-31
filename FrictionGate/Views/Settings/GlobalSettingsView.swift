@@ -3,7 +3,9 @@ import SwiftUI
 struct GlobalSettingsView: View {
 
     @ObservedObject var vm: WakeUpViewModel
+    @EnvironmentObject private var appState: AppState
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var systemColorScheme
 
     @State private var detectionEnabled: Bool = false
     @State private var idleHours:        Int  = 6
@@ -11,27 +13,40 @@ struct GlobalSettingsView: View {
     @State private var windowEndDate:    Date = dc(hour: 11).asDate
     @State private var sleepTimeDate:    Date = dc(hour: 23).asDate
     @State private var hasSleepTime:     Bool = false
+    @State private var showAbout = false
+
+    private var isDarkModeActive: Bool {
+        (appState.colorSchemeOverride ?? systemColorScheme) == .dark
+    }
 
     var body: some View {
         NavigationStack {
             List {
                 wakeUpSection
                 sleepSection
+                appearanceSection
                 statusSection
+                aboutSection
             }
-            .inkBackground()
+            .scrollContentBackground(.hidden)
+            .background(AppColors.inkBase)
             .listStyle(.insetGrouped)
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }
-                        .bold()
-                        .foregroundStyle(Color.appAccent)
+                    Button("done") { dismiss() }
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(AppColors.accentMint)
                 }
             }
+            .toolbarBackground(AppColors.inkBase, for: .navigationBar)
             .onAppear { loadFromVM() }
+            .sheet(isPresented: $showAbout) {
+                AboutFrictionView()
+            }
         }
+        .preferredColorScheme(.dark)
     }
 
     // MARK: - Sections
@@ -39,13 +54,14 @@ struct GlobalSettingsView: View {
     private var wakeUpSection: some View {
         Section {
             Toggle("Enable wake-up detection", isOn: $detectionEnabled)
+                .tint(AppColors.accentMint)
                 .onChange(of: detectionEnabled) { val in vm.detectionEnabled = val }
 
             if detectionEnabled {
                 Stepper("Idle threshold: \(idleHours) hr\(idleHours == 1 ? "" : "s")",
                         value: $idleHours, in: 1...12)
                     .onChange(of: idleHours) { val in vm.idleHours = val }
-                    .foregroundStyle(Color.appPrimary)
+                    .foregroundColor(AppColors.textPrimary)
 
                 DatePicker("Window start",
                            selection: $windowStartDate,
@@ -64,19 +80,23 @@ struct GlobalSettingsView: View {
                     }
             }
         } header: {
-            Label("Wake-Up Detection", systemImage: "sunrise")
-                .foregroundStyle(Color.appSecondary)
+            Text("WAKE-UP DETECTION")
+                .font(.system(size: 9, weight: .semibold))
+                .tracking(1.4)
+                .foregroundColor(AppColors.textDim)
         } footer: {
-            Text("Friction detects wake-up when the phone has been idle for the threshold hours and you open the app within the detection window.")
-                .foregroundStyle(Color.appTertiary)
+            Text("Wake detection uses your sleep data and morning app usage to detect when you've woken up. Works best with Apple Watch.")
+                .font(.system(size: 11))
+                .foregroundColor(AppColors.textGhost)
         }
-        .surfaceRow()
-        .listRowSeparatorTint(Color.appBorder)
+        .listRowBackground(AppColors.inkSurface)
+        .listRowSeparatorTint(AppColors.inkDeep)
     }
 
     private var sleepSection: some View {
         Section {
             Toggle("Set a sleep time", isOn: $hasSleepTime)
+                .tint(AppColors.accentMint)
                 .onChange(of: hasSleepTime) { enabled in
                     if enabled {
                         vm.sleepTime = Calendar.current
@@ -96,32 +116,77 @@ struct GlobalSettingsView: View {
                     }
             }
         } header: {
-            Label("Sleep Time", systemImage: "moon.zzz")
-                .foregroundStyle(Color.appSecondary)
+            Text("SLEEP TIME")
+                .font(.system(size: 9, weight: .semibold))
+                .tracking(1.4)
+                .foregroundColor(AppColors.textDim)
         } footer: {
-            Text("Used by \"Before Sleep\" blocking conditions.")
-                .foregroundStyle(Color.appTertiary)
+            Text("Used by Before Sleep blocking conditions.")
+                .font(.system(size: 11))
+                .foregroundColor(AppColors.textGhost)
         }
-        .surfaceRow()
-        .listRowSeparatorTint(Color.appBorder)
+        .listRowBackground(AppColors.inkSurface)
+        .listRowSeparatorTint(AppColors.inkDeep)
+    }
+
+    private var appearanceSection: some View {
+        Section {
+            Button {
+                appState.toggleColorScheme(using: systemColorScheme)
+            } label: {
+                HStack {
+                    Text(isDarkModeActive ? "Dark appearance" : "Light appearance")
+                        .foregroundColor(AppColors.textPrimary)
+                    Spacer()
+                    Image(systemName: isDarkModeActive ? "moon.fill" : "sun.max.fill")
+                        .foregroundColor(AppColors.accentMint)
+                }
+            }
+        } header: {
+            Text("APPEARANCE")
+                .font(.system(size: 9, weight: .semibold))
+                .tracking(1.4)
+                .foregroundColor(AppColors.textDim)
+        } footer: {
+            Text("Friction uses an ink palette in both modes. This toggles system chrome preference.")
+                .font(.system(size: 11))
+                .foregroundColor(AppColors.textGhost)
+        }
+        .listRowBackground(AppColors.inkSurface)
+        .listRowSeparatorTint(AppColors.inkDeep)
     }
 
     private var statusSection: some View {
         Section {
-            HStack(spacing: 12) {
-                Image(systemName: "info.circle")
-                    .foregroundStyle(Color.appAccent)
-                Text(vm.statusDescription)
-                    .font(.subheadline)
-                    .foregroundStyle(Color.appSecondary)
-            }
+            Text(vm.statusDescription)
+                .font(.system(size: 13))
+                .foregroundColor(AppColors.textSecondary)
         } header: {
-            Text("Status").foregroundStyle(Color.appSecondary)
+            Text("STATUS")
+                .font(.system(size: 9, weight: .semibold))
+                .tracking(1.4)
+                .foregroundColor(AppColors.textDim)
         }
-        .surfaceRow()
+        .listRowBackground(AppColors.inkSurface)
     }
 
-    // MARK: - Load from VM
+    private var aboutSection: some View {
+        Section {
+            Button {
+                showAbout = true
+            } label: {
+                HStack {
+                    Text("About Friction")
+                        .foregroundColor(AppColors.textPrimary)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(AppColors.inkBorder)
+                }
+            }
+        }
+        .listRowBackground(AppColors.inkSurface)
+    }
 
     private func loadFromVM() {
         detectionEnabled = vm.detectionEnabled

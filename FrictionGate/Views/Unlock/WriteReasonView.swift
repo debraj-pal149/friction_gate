@@ -5,76 +5,53 @@ struct WriteReasonView: View {
     @ObservedObject var vm: UnlockViewModel
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 28) {
-                Spacer(minLength: 24)
+        VStack(alignment: .leading, spacing: 16) {
+            EyebrowLabel(text: "write your reason")
 
-                VStack(spacing: 10) {
-                    ZStack {
-                        Circle()
-                            .fill(Color.appAccentFill)
-                            .frame(width: 64, height: 64)
-                        Image(systemName: "pencil.and.list.clipboard")
-                            .font(.system(size: 26))
-                            .foregroundStyle(Color.appAccent)
-                    }
-                    Text("Why do you want to open this app?")
-                        .font(.headline)
-                        .foregroundStyle(Color.appPrimary)
-                        .multilineTextAlignment(.center)
-                    Text("Write at least a sentence or two. No one will read it. This is just for you.")
-                        .font(.footnote)
-                        .foregroundStyle(Color.appSecondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
-                }
+            Text("why do you want to open this right now?")
+                .font(.system(size: 14))
+                .foregroundColor(AppColors.textMuted)
+                .lineSpacing(4)
 
-                TextEditor(text: $vm.writtenReason)
-                    .frame(minHeight: 160)
-                    .padding(10)
-                    .foregroundStyle(Color.appPrimary)
-                    .scrollContentBackground(.hidden)
-                    .background(Color.appSurface3)
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
+            TextEditor(text: $vm.writtenReason)
+                .font(.system(size: 13))
+                .foregroundColor(Color(hex: "#c8d8e4"))
+                .scrollContentBackground(.hidden)
+                .padding(14)
+                .frame(minHeight: 120)
+                .background(AppColors.inkSurface)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(
+                            vm.reasonIsValid ? AppColors.accentMint : AppColors.inkBorder,
+                            lineWidth: 1
+                        )
+                )
+
+            Text("minimum \(UnlockViewModel.minimumReasonLength) characters · no judgment")
+                .font(.system(size: 10))
+                .foregroundColor(AppColors.textDim)
+                .tracking(0.3)
+
+            Button {
+                vm.submitReason()
+            } label: {
+                Text("submit")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(vm.reasonIsValid ? AppColors.onAccent : AppColors.textDim)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(vm.reasonIsValid ? AppColors.accentMint : AppColors.inkSurface)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 14)
-                            .stroke(
-                                vm.reasonIsValid ? Color.appSuccess : Color.appBorder,
-                                lineWidth: vm.reasonIsValid ? 1.5 : 1
-                            )
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(vm.reasonIsValid ? Color.clear : AppColors.inkBorder, lineWidth: 1)
                     )
-                    .padding(.horizontal)
-
-                HStack {
-                    Text(
-                        vm.reasonIsValid
-                            ? "Long enough ✓"
-                            : "\(vm.writtenReason.trimmingCharacters(in: .whitespacesAndNewlines).count) / \(UnlockViewModel.minimumReasonLength) characters"
-                    )
-                    .font(.caption)
-                    .foregroundStyle(vm.reasonIsValid ? Color.appSuccess : Color.appSecondary)
-                    Spacer()
-                }
-                .padding(.horizontal)
-
-                Button {
-                    vm.submitReason()
-                } label: {
-                    Label("Submit", systemImage: "checkmark.circle.fill")
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .font(.headline)
-                        .foregroundStyle(vm.reasonIsValid ? Color.appOnAccent : Color.appTertiary)
-                }
-                .background(vm.reasonIsValid ? Color.appAccent : Color.appSurface2)
-                .clipShape(RoundedRectangle(cornerRadius: 14))
-                .disabled(!vm.reasonIsValid)
-                .padding(.horizontal)
-
-                Spacer()
             }
-            .padding(.vertical)
+            .disabled(!vm.reasonIsValid)
         }
-        .background(Color.appBackground)
+        .padding(.top, 32)
+        .padding(.horizontal, 24)
     }
 }

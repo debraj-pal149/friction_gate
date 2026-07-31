@@ -33,8 +33,7 @@ struct ChallengePickerView: View {
                 challengeSection(for: kind)
             }
         }
-        .inkBackground()
-        .listStyle(.insetGrouped)
+        .builderListChrome()
         .onAppear { loadFromVM() }
         .onChange(of: stepsEnabled)   { _ in sync() }
         .onChange(of: stepsRequired)  { _ in sync() }
@@ -52,94 +51,112 @@ struct ChallengePickerView: View {
     private var orderingNoteSection: some View {
         Section {
             Text("Top is easiest. Difficulty increases as you go down.")
-                .font(.footnote)
-                .foregroundStyle(Color.appTertiary)
-                .padding(.vertical, 2)
+                .font(.system(size: 15))
+                .foregroundColor(AppColors.textSecondary)
+                .padding(.vertical, 6)
         }
-        .surfaceRow()
-        .listRowSeparatorTint(Color.appBorder)
+        .builderBlock()
     }
 
     private var stepsSection: some View {
         Section {
             Toggle("Require steps", isOn: $stepsEnabled)
+                .font(.system(size: 16))
             if stepsEnabled {
                 Stepper("Steps: \(stepsRequired)", value: $stepsRequired, in: 100...10_000, step: 100)
+                    .font(.system(size: 16))
                     .foregroundStyle(Color.appPrimary)
             }
         } header: {
-            sectionHeader("Steps Challenge", icon: "figure.walk", challenge: .steps(required: stepsRequired))
+            BuilderSectionHeader(
+                title: "Steps Challenge",
+                icon: "figure.walk",
+                caption: frictionCaption(for: UnlockChallenge.steps(required: stepsRequired).difficultyTier)
+            )
         } footer: {
-            Text("Walk a set number of steps before the block lifts.")
-                .foregroundStyle(Color.appTertiary)
+            BuilderSectionFooter(text: "Walk a set number of steps before the block lifts.")
         }
-        .surfaceRow()
-        .listRowSeparatorTint(Color.appBorder)
+        .builderBlock()
     }
 
     private var mathsSection: some View {
         Section {
             Toggle("Require maths", isOn: $mathsEnabled)
+                .font(.system(size: 16))
             if mathsEnabled {
                 Stepper("Problems: \(mathsCount)", value: $mathsCount, in: 1...20)
+                    .font(.system(size: 16))
                     .foregroundStyle(Color.appPrimary)
             }
         } header: {
-            sectionHeader("Maths Challenge", icon: "function", challenge: .maths(count: mathsCount))
+            BuilderSectionHeader(
+                title: "Maths Challenge",
+                icon: "function",
+                caption: frictionCaption(for: UnlockChallenge.maths(count: mathsCount).difficultyTier)
+            )
         } footer: {
-            Text("Solve arithmetic problems. Difficulty scales with escalation.")
-                .foregroundStyle(Color.appTertiary)
+            BuilderSectionFooter(text: "Solve arithmetic problems. Difficulty scales with escalation.")
         }
-        .surfaceRow()
-        .listRowSeparatorTint(Color.appBorder)
+        .builderBlock()
     }
 
     private var typeSentenceSection: some View {
         Section {
             Toggle("Require typing a sentence", isOn: $typeEnabled)
+                .font(.system(size: 16))
             if typeEnabled {
                 TextField("Sentence to type", text: $typeSentence, axis: .vertical)
+                    .font(.system(size: 16))
                     .lineLimit(2...4)
                     .foregroundStyle(Color.appPrimary)
             }
         } header: {
-            sectionHeader("Type Sentence", icon: "keyboard", challenge: .typeSentence(sentence: effectiveTypeSentence))
+            BuilderSectionHeader(
+                title: "Type Sentence",
+                icon: "keyboard",
+                caption: frictionCaption(for: UnlockChallenge.typeSentence(sentence: effectiveTypeSentence).difficultyTier)
+            )
         } footer: {
-            Text("Must be typed exactly, character by character. Paste is disabled.")
-                .foregroundStyle(Color.appTertiary)
+            BuilderSectionFooter(text: "Must be typed exactly, character by character. Paste is disabled.")
         }
-        .surfaceRow()
-        .listRowSeparatorTint(Color.appBorder)
+        .builderBlock()
     }
 
     private var waitSection: some View {
         Section {
             Toggle("Require a wait", isOn: $waitEnabled)
+                .font(.system(size: 16))
             if waitEnabled {
                 Stepper("Wait: \(waitMinutes) min", value: $waitMinutes, in: 1...60)
+                    .font(.system(size: 16))
                     .foregroundStyle(Color.appPrimary)
             }
         } header: {
-            sectionHeader("Wait Challenge", icon: "timer", challenge: .wait(minutes: waitMinutes))
+            BuilderSectionHeader(
+                title: "Wait Challenge",
+                icon: "timer",
+                caption: frictionCaption(for: UnlockChallenge.wait(minutes: waitMinutes).difficultyTier)
+            )
         } footer: {
-            Text("Countdown timer. The app stays locked until it reaches zero.")
-                .foregroundStyle(Color.appTertiary)
+            BuilderSectionFooter(text: "Countdown timer. The app stays locked until it reaches zero.")
         }
-        .surfaceRow()
-        .listRowSeparatorTint(Color.appBorder)
+        .builderBlock()
     }
 
     private var writeReasonSection: some View {
         Section {
             Toggle("Require written justification", isOn: $reasonEnabled)
+                .font(.system(size: 16))
         } header: {
-            sectionHeader("Write a Reason", icon: "pencil.and.list.clipboard", challenge: .writeReason)
+            BuilderSectionHeader(
+                title: "Write a Reason",
+                icon: "pencil.and.list.clipboard",
+                caption: frictionCaption(for: UnlockChallenge.writeReason.difficultyTier)
+            )
         } footer: {
-            Text("Ask for a short reason why you want to unlock. Adds friction through self-reflection.")
-                .foregroundStyle(Color.appTertiary)
+            BuilderSectionFooter(text: "Ask for a short reason why you want to unlock. Adds friction through self-reflection.")
         }
-        .surfaceRow()
-        .listRowSeparatorTint(Color.appBorder)
+        .builderBlock()
     }
 
     // MARK: - Sync
@@ -220,22 +237,12 @@ struct ChallengePickerView: View {
         return trimmed.isEmpty ? "Type a sentence" : typeSentence
     }
 
-    private func sectionHeader(_ title: String, icon: String, challenge: UnlockChallenge) -> some View {
-        HStack(spacing: 8) {
-            Label(title, systemImage: icon)
-                .foregroundStyle(Color.appSecondary)
-            Spacer(minLength: 8)
-            ThemeBadge(text: challenge.difficultyTier.compactLabel,
-                       color: color(for: challenge.difficultyTier))
-        }
-    }
-
-    private func color(for tier: ChallengeDifficultyTier) -> Color {
+    private func frictionCaption(for tier: ChallengeDifficultyTier) -> String {
         switch tier {
-        case .easy: return Color.appSuccess
-        case .medium: return Color.appAccent
-        case .hard: return Color.appWarning
-        case .extreme: return Color.appDestructive
+        case .easy: return "light friction"
+        case .medium: return "moderate friction"
+        case .hard: return "serious friction"
+        case .extreme: return "extreme friction"
         }
     }
 }

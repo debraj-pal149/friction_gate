@@ -1,47 +1,75 @@
 import SwiftUI
 import UIKit
 
-/// Single source of truth for app colors.
-/// All raw hex values live only in this file.
+/// Locked premium ink palette — single source of truth.
+/// Do not invent colors outside this file.
 enum AppColors {
-    private static var p: Palette { ColorTemplates.current }
 
-    // Required semantic contract
-    static var primaryAccent: Color   { Color(lightHex: p.primaryAccentLight,   darkHex: p.primaryAccentDark) }
-    static var secondaryAccent: Color { Color(lightHex: p.secondaryAccentLight, darkHex: p.secondaryAccentDark) }
-    static var featureAccent: Color   { Color(lightHex: p.featureAccentLight,   darkHex: p.featureAccentDark) }
-    static var accentWash: Color      { Color(lightHex: p.accentWashLight,      darkHex: p.accentWashDark) }
-    static var background: Color      { Color(lightHex: p.backgroundLight,      darkHex: p.backgroundDark) }
-    static var surface: Color         { Color(lightHex: p.surfaceLight,         darkHex: p.surfaceDark) }
-    static var textPrimary: Color     { Color(lightHex: p.textPrimaryLight,     darkHex: p.textPrimaryDark) }
-    static var textSecondary: Color   { Color(lightHex: p.textSecondaryLight,   darkHex: p.textSecondaryDark) }
-    static var destructive: Color     { Color(lightHex: p.destructiveLight,     darkHex: p.destructiveDark) }
-    static var success: Color         { Color(lightHex: p.successLight,         darkHex: p.successDark) }
-    static var warning: Color         { Color(lightHex: p.warningLight,         darkHex: p.warningDark) }
-    static var divider: Color         { Color(lightHex: p.dividerLight,         darkHex: p.dividerDark) }
+    // Backgrounds
+    static let inkBase    = Color(hex: "#080c10")
+    static let inkSurface = Color(hex: "#0f1e2a")
+    static let inkBorder  = Color(hex: "#1a3348")
+    static let inkDeep    = Color(hex: "#0b1620")
 
-    // UIKit helpers for global appearances.
-    static var uiPrimaryAccent: UIColor { UIColor(lightHex: p.primaryAccentLight, darkHex: p.primaryAccentDark) }
-    static var uiTextPrimary: UIColor   { UIColor(lightHex: p.textPrimaryLight, darkHex: p.textPrimaryDark) }
-    static var uiBackground: UIColor    { UIColor(lightHex: p.backgroundLight, darkHex: p.backgroundDark) }
-    static var uiNavBackground: UIColor { UIColor(lightHex: p.navBackgroundLight, darkHex: p.navBackgroundDark) }
-    static var uiNavShadow: UIColor     { UIColor(lightHex: p.navShadowLight, darkHex: p.navShadowDark) }
+    // Text — keep enough contrast on inkBase / inkSurface
+    static let textPrimary   = Color(hex: "#e8edf2")
+    static let textSecondary = Color(hex: "#9bb4c6")
+    static let textMuted     = Color(hex: "#6b8fa3")
+    static let textDim       = Color(hex: "#567890")
+    static let textGhost     = Color(hex: "#2a4050")
+
+    // Accent
+    static let accentMint       = Color(hex: "#7effd4")
+    static let accentMintDim    = Color(hex: "#0d3d29")
+    static let accentMintBg     = Color(hex: "#071a13")
+    static let accentMintBorder = Color(hex: "#0f3325")
+    static let onAccent         = Color(hex: "#040a07")
+
+    // Semantic — blocked
+    static let blockedText   = Color(hex: "#ff6b6b")
+    static let blockedBg     = Color(hex: "#1f0c0c")
+    static let blockedBorder = Color(hex: "#3d1515")
+
+    // Semantic — escalation
+    static let escalationText   = Color(hex: "#ff9f43")
+    static let escalationBg     = Color(hex: "#120b07")
+    static let escalationBorder = Color(hex: "#2a1500")
+    static let escalationBody   = Color(hex: "#5a3a1e")
+
+    // Semantic — paused
+    static let pausedText   = Color(hex: "#3d5a6e")
+    static let pausedBg     = Color(hex: "#141414")
+    static let pausedBorder = Color(hex: "#1e2e38")
+
+    // Legacy semantic contract used by older call sites
+    static var primaryAccent: Color   { accentMint }
+    static var secondaryAccent: Color { textSecondary }
+    static var featureAccent: Color   { accentMint }
+    static var accentWash: Color      { accentMintDim }
+    static var background: Color      { inkBase }
+    static var surface: Color         { inkSurface }
+    static var destructive: Color     { blockedText }
+    static var success: Color         { accentMint }
+    static var warning: Color         { escalationText }
+    static var divider: Color         { inkBorder }
+
+    // UIKit helpers for global appearances
+    static var uiPrimaryAccent: UIColor { UIColor(hex: "#7effd4") }
+    static var uiTextPrimary: UIColor   { UIColor(hex: "#e8edf2") }
+    static var uiBackground: UIColor    { UIColor(hex: "#080c10") }
+    static var uiNavBackground: UIColor { UIColor(hex: "#080c10") }
+    static var uiNavShadow: UIColor     { UIColor(hex: "#00000000") }
 }
 
-private extension Color {
-    init(lightHex: String, darkHex: String) {
-        self.init(uiColor: UIColor(lightHex: lightHex, darkHex: darkHex))
+// MARK: - Hex helpers
+
+extension Color {
+    init(hex: String) {
+        self.init(uiColor: UIColor(hex: hex))
     }
 }
 
-private extension UIColor {
-    convenience init(lightHex: String, darkHex: String) {
-        self.init { trait in
-            let hex = trait.userInterfaceStyle == .dark ? darkHex : lightHex
-            return UIColor(hex: hex)
-        }
-    }
-
+extension UIColor {
     convenience init(hex: String) {
         let cleaned = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
         var value: UInt64 = 0

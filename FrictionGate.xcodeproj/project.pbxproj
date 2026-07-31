@@ -821,7 +821,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = FrictionGate/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Friction;
-				INFOPLIST_KEY_NSHealthShareUsageDescription = "Friction reads your step count to verify unlock challenges.";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Friction reads your step count and sleep data to support unlock challenges and wake-up blocking.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Friction does not write health data.";
 				INFOPLIST_KEY_NSMotionUsageDescription = "Friction uses motion data as a fallback step counter.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -856,7 +856,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = FrictionGate/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Friction;
-				INFOPLIST_KEY_NSHealthShareUsageDescription = "Friction reads your step count to verify unlock challenges.";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Friction reads your step count and sleep data to support unlock challenges and wake-up blocking.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Friction does not write health data.";
 				INFOPLIST_KEY_NSMotionUsageDescription = "Friction uses motion data as a fallback step counter.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

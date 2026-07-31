@@ -12,35 +12,37 @@ struct AppIconView: View {
 
     let token:   ApplicationToken?
     let appName: String        // letter-avatar fallback — use rule.appDisplayName
-    var size: CGFloat = 46
+    var size: CGFloat = 44
 
     /// Natural render size of FamilyActivityIconView — measured on first appearance.
     @State private var naturalSize: CGSize = .zero
 
     var body: some View {
-        if let token {
-            Label(token)
-                .labelStyle(.iconOnly)
-                // Measure the icon's natural size on first render.
-                .background(
-                    GeometryReader { geo in
-                        Color.clear.onAppear { naturalSize = geo.size }
-                    }
-                )
-                // Scale up to fill the desired square once measured.
-                // Before measurement (naturalSize == .zero) we use size/29 as a
-                // sensible starting estimate so there's no invisible flash.
-                .scaleEffect(scaleFactor)
-                .frame(width: size, height: size)
-                .clipShape(RoundedRectangle(cornerRadius: size * 0.2237, style: .continuous))
-        } else {
-            letterAvatar
+        Group {
+            if let token {
+                Label(token)
+                    .labelStyle(.iconOnly)
+                    .background(
+                        GeometryReader { geo in
+                            Color.clear.onAppear { naturalSize = geo.size }
+                        }
+                    )
+                    .scaleEffect(scaleFactor)
+                    .frame(width: size, height: size)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            } else {
+                letterAvatar
+            }
         }
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+        )
     }
 
     private var scaleFactor: CGFloat {
         let natural = max(naturalSize.width, naturalSize.height)
-        guard natural > 0 else { return size / 29 }   // pre-measurement estimate
+        guard natural > 0 else { return size / 29 }
         return size / natural
     }
 
@@ -48,22 +50,12 @@ struct AppIconView: View {
 
     private var letterAvatar: some View {
         ZStack {
-            LinearGradient(
-                colors: [avatarColor, avatarColor.opacity(0.7)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+            AppColors.inkSurface
             Text(String((appName.isEmpty ? "?" : appName).prefix(1)).uppercased())
-                .font(.system(size: size * 0.44, weight: .semibold, design: .rounded))
-                .foregroundColor(.white)
+                .font(.system(size: size * 0.44, weight: .medium))
+                .foregroundColor(AppColors.textSecondary)
         }
         .frame(width: size, height: size)
-        .clipShape(RoundedRectangle(cornerRadius: size * 0.2237, style: .continuous))
-    }
-
-    private var avatarColor: Color {
-        let palette: [Color] = [.blue, .purple, .pink, .orange, .teal, .indigo, .mint, .cyan]
-        let hash = abs(appName.unicodeScalars.reduce(0) { $0 &+ Int($1.value) })
-        return palette[hash % palette.count]
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 }

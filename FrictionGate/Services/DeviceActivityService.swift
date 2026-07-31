@@ -15,9 +15,9 @@ import UserNotifications
 /// | `.beforeSleep`      | `DeviceActivitySchedule` computed from sleep time.    |
 /// | `.dailyOpenLimit`   | `DeviceActivitySchedule` (midnight→23:59) with a      |
 /// |                     | `DeviceActivityEvent` whose threshold ≈ maxOpens min. |
-/// | `.afterWakeUp`      | Wake-window proxy schedule (`fg-wakewindow-<ruleID>`) |
-/// |                     | plus runtime evaluation by `WakeUpDetector` +         |
-/// |                     | `BlockingService`.                                    |
+/// | `.afterWakeUp`      | Wake-window schedule + first-use event + one-shot     |
+/// |                     | expiry (`fg-wakeexpiry-*`). Wake stamp itself comes   |
+/// |                     | from HealthKit / wake event / foreground fallback.    |
 ///
 /// ## Activity naming convention
 /// All schedules for a rule are named `"fg-<ruleID>-<conditionIndex>"` so the
@@ -45,6 +45,7 @@ final class DeviceActivityService {
         }
         if hasAfterWakeUp {
             scheduleWakeWindowMonitoring(for: rule, settings: loadAppSettings())
+            ensureMidnightWakeResetSchedule()
         }
 
         for (index, condition) in rule.conditions.enumerated() {
@@ -79,14 +80,19 @@ final class DeviceActivityService {
                 )
 
             case .afterWakeUp:
-                break  // Wake-window proxy schedule registered above.
+                break  // Wake-window + event monitoring registered above.
             }
         }
     }
 
     /// Registers a daily recurring wake-window schedule so the monitor extension
-    /// can evaluate `.afterWakeUp` rules without Friction foregrounding at wake.
+    /// can arm morning detection and observe first use of this rule's app.
+    ///
+    /// LIMITATION: the wake-event threshold only monitors apps enrolled in an
+    /// after-wake rule. Opening an unmonitored app first will not fire this path.
     func scheduleWakeWindowMonitoring(for rule: Rule, settings: AppSettings) {
+        guard let token = rule.appToken else { return }
+
         let name = wakeWindowActivityName(for: rule.id)
         center.stopMonitoring([name])
 
@@ -95,10 +101,78 @@ final class DeviceActivityService {
             intervalEnd: settings.wakeUpWindowEnd,
             repeats: true
         )
+
+        // Secondary wake signal: ~1 minute of usage of this rule's app during
+        // the morning window ≈ "phone is no longer idle" for V1.
+        let eventName = wakeEventName(for: rule.id)
+        let event = DeviceActivityEvent(
+            applications: [token],
+            threshold: DateComponents(minute: 1)
+        )
+
+        do {
+            try center.startMonitoring(name, during: schedule, events: [eventName: event])
+        } catch {
+            print("[DeviceActivityService] scheduleWakeWindowMonitoring failed: \(error)")
+        }
+    }
+
+    /// One-shot schedule that fires when `wakeDetectedAt + afterWake duration` elapses,
+    /// so shields can clear without opening Friction.
+    func scheduleAfterWakeExpiry(for rule: Rule, wakeDetectedAt: Date) {
+        guard let durationMinutes = Self.afterWakeDurationMinutes(in: rule) else { return }
+
+        let cal = Calendar.current
+        let expiryDate = wakeDetectedAt.addingTimeInterval(Double(durationMinutes) * 60)
+        let now = Date()
+
+        // Already past expiry — caller should recompute shields; nothing to schedule.
+        guard expiryDate > now.addingTimeInterval(2) else { return }
+
+        let startDate = now.addingTimeInterval(1)
+        let startComps = cal.dateComponents(
+            [.year, .month, .day, .hour, .minute, .second], from: startDate)
+        let endComps = cal.dateComponents(
+            [.year, .month, .day, .hour, .minute, .second], from: expiryDate)
+
+        let name = afterWakeExpiryActivityName(for: rule.id)
+        center.stopMonitoring([name])
+
+        let schedule = DeviceActivitySchedule(
+            intervalStart: startComps,
+            intervalEnd: endComps,
+            repeats: false
+        )
         do {
             try center.startMonitoring(name, during: schedule)
         } catch {
-            print("[DeviceActivityService] scheduleWakeWindowMonitoring failed: \(error)")
+            print("[DeviceActivityService] scheduleAfterWakeExpiry failed: \(error)")
+        }
+    }
+
+    /// Schedules expiry for every enforcing rule that has an `.afterWakeUp` condition.
+    func scheduleAfterWakeExpiryForAllAfterWakeRules(wakeDetectedAt: Date) {
+        for rule in Self.loadAfterWakeUpRules() {
+            scheduleAfterWakeExpiry(for: rule, wakeDetectedAt: wakeDetectedAt)
+        }
+    }
+
+    /// Daily 00:00→00:01 schedule that clears stale wake stamps without Friction open.
+    func ensureMidnightWakeResetSchedule() {
+        let name = midnightWakeResetActivityName()
+        center.stopMonitoring([name])
+
+        var start = DateComponents(); start.hour = 0; start.minute = 0
+        var end = DateComponents(); end.hour = 0; end.minute = 1
+        let schedule = DeviceActivitySchedule(
+            intervalStart: start,
+            intervalEnd: end,
+            repeats: true
+        )
+        do {
+            try center.startMonitoring(name, during: schedule)
+        } catch {
+            print("[DeviceActivityService] ensureMidnightWakeResetSchedule failed: \(error)")
         }
     }
 
@@ -108,13 +182,30 @@ final class DeviceActivityService {
         DeviceActivityName("fg-wakewindow-\(ruleID.uuidString)")
     }
 
+    func wakeEventName(for ruleID: UUID) -> DeviceActivityEvent.Name {
+        DeviceActivityEvent.Name("fg-wakevent-\(ruleID.uuidString)")
+    }
+
+    func afterWakeExpiryActivityName(for ruleID: UUID) -> DeviceActivityName {
+        DeviceActivityName("fg-wakeexpiry-\(ruleID.uuidString)")
+    }
+
+    func midnightWakeResetActivityName() -> DeviceActivityName {
+        DeviceActivityName("fg-wakemidnight-reset")
+    }
+
     /// Removes all `DeviceActivityCenter` schedules for `rule`.
     ///
     /// Call when a rule is deleted, deactivated, or paused.
     func removeSchedules(for rule: Rule) {
         // Probe the first 20 indices — rules won't realistically have more conditions.
         let names = (0..<20).map { activityName(for: rule.id, index: $0) }
-        center.stopMonitoring(names + [wakeWindowActivityName(for: rule.id)])
+        center.stopMonitoring(
+            names + [
+                wakeWindowActivityName(for: rule.id),
+                afterWakeExpiryActivityName(for: rule.id)
+            ]
+        )
         // Also cancel any pending session-relock schedule.
         cancelSessionRelock(for: rule.id)
     }
@@ -173,6 +264,44 @@ final class DeviceActivityService {
             .removePendingNotificationRequests(withIdentifiers: ["fg-session-end-\(ruleID.uuidString)"])
     }
 
+    // MARK: - Shared after-wake helpers
+
+    static func afterWakeDurationMinutes(in rule: Rule) -> Int? {
+        for condition in rule.conditions {
+            if case .afterWakeUp(let minutes) = condition {
+                return minutes
+            }
+        }
+        return nil
+    }
+
+    static func loadAfterWakeUpRules(
+        defaults: UserDefaults = UserDefaults(suiteName: "group.com.debrajpal.frictiongate") ?? .standard
+    ) -> [Rule] {
+        guard let rulesData = defaults.data(forKey: "stored_rules"),
+              var rules = try? JSONDecoder().decode([Rule].self, from: rulesData)
+        else { return [] }
+
+        if let outerData = defaults.data(forKey: "stored_selections"),
+           let map = try? JSONDecoder().decode([String: Data].self, from: outerData) {
+            for i in rules.indices {
+                let key = rules[i].id.uuidString
+                guard let selData = map[key],
+                      let selection = try? PropertyListDecoder()
+                        .decode(FamilyActivitySelection.self, from: selData)
+                else { continue }
+                rules[i].activitySelection = selection
+            }
+        }
+
+        return rules.filter { rule in
+            rule.isEnforcing && rule.conditions.contains { condition in
+                if case .afterWakeUp = condition { return true }
+                return false
+            }
+        }
+    }
+
     // MARK: - Private relock notification
 
     private func scheduleRelockNotification(for rule: Rule, expiryDate: Date) {
@@ -205,13 +334,6 @@ final class DeviceActivityService {
     // MARK: - Helpers
 
     /// Canonical activity name for a specific condition in a rule.
-    ///
-    /// The monitor extension reverses this to identify the rule:
-    /// ```
-    /// let ruleID = UUID(uuidString: name.rawValue
-    ///     .replacingOccurrences(of: "fg-", with: "")
-    ///     .components(separatedBy: "-").dropLast().joined(separator: "-"))
-    /// ```
     func activityName(for ruleID: UUID, index: Int) -> DeviceActivityName {
         DeviceActivityName("fg-\(ruleID.uuidString)-\(index)")
     }
@@ -235,9 +357,6 @@ final class DeviceActivityService {
     }
 
     /// Computes the `DateComponents` for the start of a before-sleep block window.
-    ///
-    ///     sleepTime = 23:00, durationMinutes = 90  →  21:30
-    ///     sleepTime = 00:30, durationMinutes = 60  →  23:30  (wraps midnight)
     private func startComponents(before sleepTime: DateComponents, by minutes: Int) -> DateComponents {
         let total   = (sleepTime.hour ?? 23) * 60 + (sleepTime.minute ?? 0) - minutes
         let clamped = ((total % 1440) + 1440) % 1440

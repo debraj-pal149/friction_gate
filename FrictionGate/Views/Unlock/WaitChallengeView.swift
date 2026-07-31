@@ -7,78 +7,76 @@ struct WaitChallengeView: View {
     private var minutes: Int { vm.waitSecondsRemaining / 60 }
     private var seconds: Int { vm.waitSecondsRemaining % 60 }
 
+    private var timeLabel: String {
+        if minutes > 0 {
+            return String(format: "%d:%02d", minutes, seconds)
+        }
+        return "\(seconds)"
+    }
+
     var body: some View {
-        VStack(spacing: 36) {
-            Spacer()
+        VStack(spacing: 0) {
+            EyebrowLabel(text: "wait to unlock")
+                .padding(.bottom, 20)
 
             ZStack {
-                // Track ring
                 Circle()
-                    .stroke(Color.appSurface2, lineWidth: 14)
-                    .frame(width: 220, height: 220)
-
-                // Progress ring with glow
+                    .stroke(AppColors.inkSurface, lineWidth: 6)
+                    .frame(width: 180, height: 180)
                 Circle()
-                    .trim(from: 0, to: vm.waitExpired ? 1 : vm.waitProgress)
+                    .trim(from: 0, to: vm.waitExpired ? 0 : vm.waitProgress)
                     .stroke(
-                        vm.waitExpired ? Color.appSuccess : Color.appAccent,
-                        style: StrokeStyle(lineWidth: 14, lineCap: .round)
+                        AppColors.accentMint,
+                        style: StrokeStyle(lineWidth: 6, lineCap: .round)
                     )
+                    .frame(width: 180, height: 180)
                     .rotationEffect(.degrees(-90))
-                    .frame(width: 220, height: 220)
                     .animation(.linear(duration: 1), value: vm.waitProgress)
-                    .shadow(
-                        color: (vm.waitExpired ? Color.appSuccess : Color.appAccent).opacity(0.5),
-                        radius: 12, x: 0, y: 0
-                    )
 
                 VStack(spacing: 4) {
                     if vm.waitExpired {
                         Image(systemName: "checkmark")
-                            .font(.system(size: 48, weight: .bold))
-                            .foregroundStyle(Color.appSuccess)
+                            .font(.system(size: 36, weight: .light))
+                            .foregroundColor(AppColors.accentMint)
                     } else {
-                        Text(String(format: "%d:%02d", minutes, seconds))
-                            .font(.system(size: 52, weight: .bold, design: .rounded))
+                        Text(timeLabel)
+                            .font(.system(size: 42, weight: .light))
+                            .foregroundColor(AppColors.textPrimary)
+                            .tracking(-2)
                             .monospacedDigit()
-                            .foregroundStyle(Color.appPrimary)
                         Text("remaining")
-                            .font(.subheadline)
-                            .foregroundStyle(Color.appSecondary)
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundColor(AppColors.textDim)
+                            .tracking(0.6)
+                            .textCase(.uppercase)
                     }
                 }
             }
+            .padding(.bottom, 24)
 
-            VStack(spacing: 8) {
-                Text(vm.waitExpired ? "Time's up." : "Wait it out.")
-                    .font(.title2.bold())
-                    .foregroundStyle(Color.appPrimary)
-                Text(vm.waitExpired
-                     ? "You've waited the required time. Tap below to continue."
-                     : "The app will unlock once the countdown reaches zero.")
-                    .font(.footnote)
-                    .foregroundStyle(Color.appSecondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
-            }
+            Text(vm.waitExpired ? "time's up" : "sit with the urge")
+                .font(.system(size: 14))
+                .foregroundColor(AppColors.textMuted)
+                .padding(.bottom, 20)
 
             Button {
                 vm.confirmWaitComplete()
             } label: {
-                Label("Continue", systemImage: "arrow.right.circle.fill")
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .font(.headline)
-                    .foregroundStyle(vm.waitExpired ? Color.appOnAccent : Color.appTertiary)
+                Text("continue")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(vm.waitExpired ? AppColors.onAccent : AppColors.textDim)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 12)
+                    .background(vm.waitExpired ? AppColors.accentMint : AppColors.inkSurface)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(vm.waitExpired ? Color.clear : AppColors.inkBorder, lineWidth: 1)
+                    )
             }
-            .background(vm.waitExpired ? Color.appAccent : Color.appSurface2)
-            .clipShape(RoundedRectangle(cornerRadius: 14))
             .disabled(!vm.waitExpired)
-            .padding(.horizontal)
-
-            Spacer()
         }
-        .padding()
-        .background(Color.appBackground)
+        .padding(.top, 32)
+        .padding(.horizontal, 24)
     }
 }

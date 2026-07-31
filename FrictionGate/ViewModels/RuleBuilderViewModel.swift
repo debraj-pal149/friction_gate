@@ -111,6 +111,17 @@ final class RuleBuilderViewModel: ObservableObject {
         }
     }
 
+    /// Plain-language reason shown when Next is disabled.
+    var validationMessage: String {
+        switch currentStep {
+        case .appPicker:       return "select at least one app"
+        case .conditionPicker: return "add at least one block condition"
+        case .challengePicker: return "add at least one unlock challenge"
+        case .escalation:      return ""
+        case .review:          return isValid ? "" : "complete all required steps"
+        }
+    }
+
     // MARK: - Step navigation
 
     func nextStep() {

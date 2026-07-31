@@ -1,108 +1,60 @@
-// FrictionGateShieldConfig/ShieldConfigurationExtension.swift
-//
-// ─────────────────────────────────────────────────────────────────────────────
-// XCODE SETUP (do this once before building):
-//
-// 1. File → New → Target → search "Shield Configuration Extension" → Add
-//    • Product Name: FrictionGateShieldConfig
-//    • Bundle ID auto-fills as com.debrajpal.frictiongate.FrictionGateShieldConfig
-//    • Leave it as-is.
-//
-// 2. Select the FrictionGateShieldConfig target → Signing & Capabilities:
-//    • + Capability → App Groups → add group.com.debrajpal.frictiongate
-//    • + Capability → Family Controls
-//
-// 3. Set minimum deployment target to iOS 16.0 (same as main app).
-//
-// 4. Replace Xcode's generated stub file in FrictionGateShieldConfig/ with
-//    this file (or rename the stub to ShieldConfigurationExtension.swift and
-//    paste this content in).
-// ─────────────────────────────────────────────────────────────────────────────
-
 import ManagedSettings
 import ManagedSettingsUI
 import UIKit
 
 /// Supplies the custom appearance for the Friction block screen.
-///
-/// When a user tries to open a blocked app, iOS shows the shield overlay.
-/// This class controls:
-///   - The title (the blocked app's display name)
-///   - The subtitle ("A Friction block rule is active")
-///   - The primary button label ("Unlock in Friction")
-///
-/// The primary button tap is handled by `ShieldActionExtension` in the
-/// `FrictionGateShield` target — it writes to App Group UserDefaults and
-/// Friction's main app presents the unlock challenge.
 class ShieldConfigurationExtension: ShieldConfigurationDataSource {
-
-    // MARK: - Shared storage
 
     private let defaults = UserDefaults(
         suiteName: "group.com.debrajpal.frictiongate"
     )
 
-    // MARK: - ShieldConfigurationDataSource
-
     override func configuration(
         shielding application: Application
     ) -> ShieldConfiguration {
-        let appName = displayName(for: application)
-        return makeConfiguration(appName: appName)
+        makeConfiguration(appName: displayName(for: application))
     }
 
     override func configuration(
         shielding application: Application,
         in category: ActivityCategory
     ) -> ShieldConfiguration {
-        let appName = displayName(for: application)
-        return makeConfiguration(appName: appName)
+        makeConfiguration(appName: displayName(for: application))
     }
 
-    // MARK: - Configuration builder
-
-    // MARK: - Design tokens
-    //
-    // To change the shield accent color, update electricBlue below.
-    // It matches Color.appAccent in the main app's Color+Theme.swift.
-    private static let electricBlue = UIColor(red: 16/255, green: 64/255, blue: 232/255, alpha: 1)
-    private static let shieldBg     = UIColor(white: 0.98, alpha: 0.96)
-    private static let nearBlack    = UIColor(red: 13/255, green: 13/255, blue: 20/255,  alpha: 1)
-    private static let mediumGrey   = UIColor(red: 94/255, green: 94/255, blue: 114/255, alpha: 1)
+    // Locked ink palette — matches AppColors.accentMint / inkSurface.
+    private static let accentMint = UIColor(red: 126/255, green: 255/255, blue: 212/255, alpha: 1)
+    private static let inkSurface = UIColor(red: 15/255, green: 30/255, blue: 42/255, alpha: 1)
+    private static let textPrimary = UIColor(red: 232/255, green: 237/255, blue: 242/255, alpha: 1)
+    private static let textMuted = UIColor(red: 61/255, green: 90/255, blue: 110/255, alpha: 1)
+    private static let onAccent = UIColor(red: 4/255, green: 10/255, blue: 7/255, alpha: 1)
 
     private func makeConfiguration(appName: String) -> ShieldConfiguration {
         ShieldConfiguration(
-            backgroundBlurStyle: .systemUltraThinMaterial,
-            backgroundColor:     Self.shieldBg,
+            backgroundBlurStyle: .dark,
+            backgroundColor:     Self.inkSurface,
             icon:                UIImage(systemName: "lock.shield.fill")?
-                                     .withTintColor(Self.electricBlue, renderingMode: .alwaysOriginal),
+                                     .withTintColor(Self.accentMint, renderingMode: .alwaysOriginal),
             title: ShieldConfiguration.Label(
                 text:  appName,
-                color: Self.nearBlack
+                color: Self.textPrimary
             ),
             subtitle: ShieldConfiguration.Label(
                 text:  "Open Friction to complete a challenge and unlock this app.",
-                color: Self.mediumGrey
+                color: Self.textMuted
             ),
             primaryButtonLabel: ShieldConfiguration.Label(
-                text:  "Switch to Friction",
-                color: .white
+                text:  "unlock",
+                color: Self.onAccent
             ),
-            primaryButtonBackgroundColor: Self.electricBlue
+            primaryButtonBackgroundColor: Self.accentMint
         )
     }
 
-    // MARK: - Display name helper
-
     private func displayName(for application: Application) -> String {
-        // Use the localised name from the Application object if available.
         if let name = application.localizedDisplayName, !name.isEmpty {
             return name
         }
-        // Fall back to the rule's stored display name read from App Group UserDefaults.
-        // `pending_unlock_rule_id` is written by ShieldActionExtension when the user
-        // taps the primary button — but for the *configuration* call (which happens
-        // before any tap), we read the app name from the stored rules.
         if let ruleID   = defaults?.string(forKey: "pending_unlock_rule_id"),
            let rulesData = defaults?.data(forKey: "stored_rules"),
            let rules    = try? JSONDecoder().decode([StoredRuleStub].self, from: rulesData),
@@ -112,11 +64,6 @@ class ShieldConfigurationExtension: ShieldConfigurationDataSource {
         return "Blocked App"
     }
 }
-
-// MARK: - Minimal rule stub for name lookup
-//
-// We only need the id + appDisplayName from the stored JSON — no need to
-// link the full Rule model (which pulls in FamilyControls/ManagedSettings).
 
 private struct StoredRuleStub: Decodable {
     let id: String

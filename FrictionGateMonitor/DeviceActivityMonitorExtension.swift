@@ -45,7 +45,10 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         static let settings   = "app_settings"
         static let selections = "stored_selections"
         static let wakeDetectedAt = "wake_detected_at"
+        static let wakeWindowArmed = "wake_window_armed"
     }
+
+    private let activityCenter = DeviceActivityCenter()
 
     private func dailyLimitExceededKey(_ ruleID: UUID) -> String {
         "dailyLimitExceeded_\(ruleID.uuidString)"
@@ -56,11 +59,17 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     override func intervalDidStart(for activity: DeviceActivityName) {
         super.intervalDidStart(for: activity)
 
-        // Session-relock activities only care about intervalDidEnd — ignore start.
+        // Session-relock / after-wake expiry only care about intervalDidEnd.
         guard !activity.rawValue.hasPrefix("fg-relock-") else { return }
+        guard !activity.rawValue.hasPrefix("fg-wakeexpiry-") else { return }
 
-        // Wake-window proxy: evaluate .afterWakeUp rules without requiring Friction
-        // to foreground at wake time.
+        // Midnight reset: clear stale wake stamp / armed flag for the new day.
+        if activity.rawValue == "fg-wakemidnight-reset" {
+            handleMidnightWakeReset()
+            return
+        }
+
+        // Wake-window proxy: arm morning detection (does NOT stamp wake at window start).
         if activity.rawValue.hasPrefix("fg-wakewindow-") {
             handleWakeWindowIntervalStart()
             return
@@ -111,6 +120,22 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
             return
         }
 
+        // After-wake duration expiry: recompute (do not blind-remove).
+        if raw.hasPrefix("fg-wakeexpiry-") {
+            handleAfterWakeExpiry()
+            return
+        }
+
+        // Wake-window end (e.g. 11:00): belt-and-suspenders recompute.
+        if raw.hasPrefix("fg-wakewindow-") {
+            handleWakeWindowIntervalEnd()
+            return
+        }
+
+        if raw == "fg-wakemidnight-reset" {
+            return
+        }
+
         // Regular condition schedule: fg-<UUID>-<conditionIndex>
         // The block window has ended — remove the shield.
         guard let (ruleIDString, endingConditionIndex) = parseActivity(activity),
@@ -139,6 +164,17 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         activity: DeviceActivityName
     ) {
         super.eventDidReachThreshold(event, activity: activity)
+
+        // Secondary wake signal: first ~1 min of monitored after-wake app use
+        // during an armed morning window.
+        //
+        // LIMITATION: only apps enrolled in after-wake rules are monitored.
+        // Opening an unmonitored app first will not fire this path.
+        // DeviceActivity event delivery can be inconsistent on some iOS versions.
+        if event.rawValue.hasPrefix("fg-wakevent-") {
+            handleWakeEventThreshold()
+            return
+        }
 
         // The dailyOpenLimit threshold has been reached — apply the shield for the
         // remainder of the day.  DeviceActivityCenter will call intervalDidEnd at
@@ -272,28 +308,111 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
         }
     }
 
-    // MARK: - Wake-window proxy
+    // MARK: - Wake-window / after-wake detection
+    //
+    // Approximation limits (V1):
+    // - No public API for true physiological wake. We arm at window start, then
+    //   stamp wake from HealthKit sleep end (main app) or first monitored-app use.
+    // - Do NOT stamp wake_detected_at at 5am window start — that is almost always wrong.
+    // - Without Watch/iPhone sleep tracking, HK path never fires.
+    // - DeviceActivity event thresholds can be delayed/inconsistent on some iOS builds.
 
     private func handleWakeWindowIntervalStart() {
         let settings = loadAppSettings()
         guard isWithinWakeUpWindow(settings: settings, at: Date()) else { return }
 
-        // Conservative proxy: entering the wake window without a same-day detection
-        // timestamp means the user likely just woke up.
         if !isWakeDetectedToday() {
-            defaults.set(Date().timeIntervalSince1970, forKey: Keys.wakeDetectedAt)
+            // Arm only — wait for HK sleep end (main app) or fg-wakevent threshold.
+            defaults.set(true, forKey: Keys.wakeWindowArmed)
+            return
         }
 
-        let afterWakeUpRules = loadAllRules().filter { rule in
+        // Wake already stamped today — ensure shields match remaining duration.
+        recomputeAllAfterWakeUpShields()
+    }
+
+    private func handleWakeWindowIntervalEnd() {
+        recomputeAllAfterWakeUpShields()
+    }
+
+    private func handleAfterWakeExpiry() {
+        recomputeAllAfterWakeUpShields()
+    }
+
+    private func handleMidnightWakeReset() {
+        defaults.removeObject(forKey: Keys.wakeDetectedAt)
+        defaults.removeObject(forKey: Keys.wakeWindowArmed)
+    }
+
+    private func handleWakeEventThreshold() {
+        guard defaults.bool(forKey: Keys.wakeWindowArmed) else { return }
+        guard !isWakeDetectedToday() else { return }
+
+        let now = Date()
+        let settings = loadAppSettings()
+        guard isWithinWakeUpWindow(settings: settings, at: now) else { return }
+
+        defaults.set(now.timeIntervalSince1970, forKey: Keys.wakeDetectedAt)
+        defaults.removeObject(forKey: Keys.wakeWindowArmed)
+
+        let rules = loadAfterWakeUpRules()
+        for rule in rules {
+            scheduleAfterWakeExpiryInline(for: rule, wakeDetectedAt: now)
+        }
+        recomputeAllAfterWakeUpShields()
+    }
+
+    private func recomputeAllAfterWakeUpShields() {
+        let tokens = Set(loadAfterWakeUpRules().compactMap(\.appToken))
+        for token in tokens {
+            recomputeShield(for: token)
+        }
+    }
+
+    private func loadAfterWakeUpRules() -> [Rule] {
+        loadAllRules().filter { rule in
             rule.isEnforcing && rule.conditions.contains { condition in
                 if case .afterWakeUp = condition { return true }
                 return false
             }
         }
+    }
 
-        let tokens = Set(afterWakeUpRules.compactMap(\.appToken))
-        for token in tokens {
-            recomputeShield(for: token)
+    /// Extension-local copy of DeviceActivityService.scheduleAfterWakeExpiry —
+    /// DeviceActivityService is not a Monitor target member.
+    private func scheduleAfterWakeExpiryInline(for rule: Rule, wakeDetectedAt: Date) {
+        var durationMinutes: Int?
+        for condition in rule.conditions {
+            if case .afterWakeUp(let minutes) = condition {
+                durationMinutes = minutes
+                break
+            }
+        }
+        guard let durationMinutes else { return }
+
+        let cal = Calendar.current
+        let expiryDate = wakeDetectedAt.addingTimeInterval(Double(durationMinutes) * 60)
+        let now = Date()
+        guard expiryDate > now.addingTimeInterval(2) else { return }
+
+        let startDate = now.addingTimeInterval(1)
+        let startComps = cal.dateComponents(
+            [.year, .month, .day, .hour, .minute, .second], from: startDate)
+        let endComps = cal.dateComponents(
+            [.year, .month, .day, .hour, .minute, .second], from: expiryDate)
+
+        let name = DeviceActivityName("fg-wakeexpiry-\(rule.id.uuidString)")
+        activityCenter.stopMonitoring([name])
+
+        let schedule = DeviceActivitySchedule(
+            intervalStart: startComps,
+            intervalEnd: endComps,
+            repeats: false
+        )
+        do {
+            try activityCenter.startMonitoring(name, during: schedule)
+        } catch {
+            print("[FrictionGateMonitor] scheduleAfterWakeExpiry failed: \(error)")
         }
     }
 

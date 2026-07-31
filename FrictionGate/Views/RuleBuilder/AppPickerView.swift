@@ -29,62 +29,77 @@ struct AppPickerView: View {
     // MARK: - Auth required fallback
 
     private var authorizationRequiredView: some View {
-        VStack(spacing: 28) {
+        VStack(spacing: 20) {
             Spacer()
 
-            ZStack {
-                Circle()
-                    .fill(Color.appAccentFill)
-                    .frame(width: 80, height: 80)
-                Image(systemName: "lock.shield")
-                    .font(.system(size: 36, weight: .light))
-                    .foregroundStyle(Color.appAccent)
-            }
+            Image(systemName: "lock.shield")
+                .font(.system(size: 36, weight: .light))
+                .foregroundColor(AppColors.accentMint)
 
-            VStack(spacing: 10) {
-                Text("Screen Time Permission Required")
-                    .font(.title3.bold())
-                    .foregroundStyle(Color.appPrimary)
+            VStack(spacing: 8) {
+                Text("screen time permission required")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundColor(AppColors.textPrimary)
                     .multilineTextAlignment(.center)
 
                 Text(statusMessage)
-                    .font(.subheadline)
-                    .foregroundStyle(Color.appSecondary)
+                    .font(.system(size: 13))
+                    .foregroundColor(AppColors.textMuted)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal)
+                    .lineSpacing(3)
+                    .padding(.horizontal, 8)
             }
 
             if appState.familyControlsStatus == .notDetermined {
-                Button("Request Permission") {
+                Button {
                     Task {
                         try? await AuthorizationCenter.shared
                             .requestAuthorization(for: .individual)
                         appState.familyControlsStatus =
                             AuthorizationCenter.shared.authorizationStatus
                     }
+                } label: {
+                    Text("request permission")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(AppColors.onAccent)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(AppColors.accentMint)
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.plain)
+                .padding(.horizontal, 24)
             } else {
-                Button("Open Settings") {
+                Button {
                     if let url = URL(string: UIApplication.openSettingsURLString) {
                         UIApplication.shared.open(url)
                     }
+                } label: {
+                    Text("open settings")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(AppColors.onAccent)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(AppColors.accentMint)
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.plain)
+                .padding(.horizontal, 24)
             }
 
             if let err = appState.familyControlsError {
-                Text("Technical detail: \(err)")
-                    .font(.caption2)
-                    .foregroundStyle(Color.appTertiary)
-                    .padding(.horizontal)
+                Text(err)
+                    .font(.system(size: 13))
+                    .foregroundColor(AppColors.textMuted)
+                    .padding(.horizontal, 24)
                     .multilineTextAlignment(.center)
             }
 
             Spacer()
         }
         .padding()
-        .background(Color.appBackground)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(AppColors.inkBase)
     }
 
     private var statusMessage: String {

@@ -1,23 +1,24 @@
 import Foundation
 import HealthKit
 
-/// Wraps all HealthKit step-count interactions for FrictionGate.
+/// Wraps HealthKit interactions for FrictionGate (steps + sleep).
 ///
-/// Authorization is requested once on first launch. All query methods return `0`
-/// silently when HealthKit is unavailable (simulator) or the user has denied
-/// access — callers do not need to guard for availability.
+/// Authorization is requested once; subsequent calls are no-ops when permission
+/// has already been granted or denied. Query methods degrade silently when
+/// HealthKit is unavailable (simulator) or access is denied.
 ///
-/// Important: HealthKit and HealthKit Background Delivery entitlements must be
-/// enabled in Signing & Capabilities, and the following keys must be present in
-/// Info.plist:
-///   - NSHealthShareUsageDescription
-///   - NSHealthUpdateUsageDescription
+/// Entitlements required:
+///   - HealthKit
+///   - HealthKit Background Delivery
+/// Privacy string:
+///   - NSHealthShareUsageDescription (steps + sleep)
 final class HealthKitService {
 
     static let shared = HealthKitService()
 
     private let store = HKHealthStore()
     private let stepType = HKQuantityType(.stepCount)
+    private let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis)
 
     // MARK: - Availability
 
@@ -27,13 +28,14 @@ final class HealthKitService {
 
     // MARK: - Authorization
 
-    /// Requests read-only access to step count data.
-    ///
-    /// HealthKit shows the permission sheet only on the first call; subsequent
-    /// calls are no-ops when permission has already been granted or denied.
+    /// Requests read access to step count and sleep analysis.
     func requestAuthorization() async throws {
         guard isHealthDataAvailable else { return }
-        try await store.requestAuthorization(toShare: [], read: [stepType])
+        var readTypes: Set<HKObjectType> = [stepType]
+        if let sleepType {
+            readTypes.insert(sleepType)
+        }
+        try await store.requestAuthorization(toShare: [], read: readTypes)
     }
 
     // MARK: - Step queries
@@ -63,9 +65,6 @@ final class HealthKitService {
     }
 
     /// Steps since midnight today.
-    ///
-    /// Used to evaluate the daily step-goal block condition and to display
-    /// a motivational progress indicator on the unlock screen.
     func stepsSinceMidnight() async -> Int {
         let midnight = Calendar.current.startOfDay(for: Date())
         return await stepsSince(midnight)

@@ -7,54 +7,63 @@ struct StepChallengeView: View {
 
     private var progress: Double {
         guard required > 0 else { return 1 }
-        return min(1, Double(vm.stepsFromStart) / Double(required))
+        return min(Double(vm.stepsFromStart) / Double(required), 1.0)
     }
 
     var body: some View {
-        GeometryReader { proxy in
-            VStack(spacing: 24) {
-                ZStack {
-                    Circle()
-                        .stroke(Color.appSurface2, lineWidth: 16)
-                    Circle()
-                        .trim(from: 0, to: progress)
-                        .stroke(
-                            progress >= 1 ? Color.appSuccess : Color.appAccent,
-                            style: StrokeStyle(lineWidth: 16, lineCap: .round)
-                        )
-                        .rotationEffect(.degrees(-90))
-                        .animation(.easeInOut(duration: 0.4), value: progress)
-                        .shadow(
-                            color: (progress >= 1 ? Color.appSuccess : Color.appAccent).opacity(0.5),
-                            radius: 12, x: 0, y: 0
-                        )
+        VStack(spacing: 0) {
+            EyebrowLabel(text: "walk to unlock")
+                .padding(.bottom, 20)
 
-                    VStack(spacing: 4) {
-                        Text("\(vm.stepsFromStart)")
-                            .font(.system(size: 42, weight: .bold, design: .rounded))
-                            .monospacedDigit()
-                            .foregroundStyle(Color.appPrimary)
-                        Text("of \(required)")
-                            .font(.subheadline)
-                            .foregroundStyle(Color.appSecondary)
-                    }
-                }
-                .frame(width: 200, height: 200)
+            ZStack {
+                Circle()
+                    .stroke(AppColors.inkSurface, lineWidth: 6)
+                    .frame(width: 180, height: 180)
+                Circle()
+                    .stroke(AppColors.accentMintBorder, lineWidth: 6)
+                    .frame(width: 180, height: 180)
+                Circle()
+                    .trim(from: 0, to: progress)
+                    .stroke(
+                        AppColors.accentMint,
+                        style: StrokeStyle(lineWidth: 6, lineCap: .round)
+                    )
+                    .frame(width: 180, height: 180)
+                    .rotationEffect(.degrees(-90))
+                    .animation(.easeInOut(duration: 0.3), value: progress)
 
-                VStack(spacing: 8) {
-                    Text("Walk \(required) steps to unlock")
-                        .font(.headline)
-                        .foregroundStyle(Color.appPrimary)
-                    Text("Steps are counted from when you requested the unlock. Please don't close this dialog or the app while walking.")
-                        .font(.footnote)
-                        .foregroundStyle(Color.appSecondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
+                VStack(spacing: 4) {
+                    Text("\(vm.stepsFromStart)")
+                        .font(.system(size: 42, weight: .light))
+                        .foregroundColor(AppColors.textPrimary)
+                        .tracking(-2)
+                        .monospacedDigit()
+                    Text("of \(required) steps")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(AppColors.textDim)
+                        .tracking(0.6)
+                        .textCase(.uppercase)
                 }
             }
-            .frame(maxWidth: .infinity, minHeight: proxy.size.height, maxHeight: .infinity, alignment: .center)
-            .padding()
+            .padding(.bottom, 24)
+
+            Text("\(max(0, required - vm.stepsFromStart)) more to go")
+                .font(.system(size: 14))
+                .foregroundColor(AppColors.textMuted)
+                .tracking(-0.2)
+                .padding(.bottom, 4)
+
+            HStack(spacing: 5) {
+                Circle()
+                    .fill(AppColors.accentMint)
+                    .frame(width: 5, height: 5)
+                Text("updating live")
+                    .font(.system(size: 10))
+                    .foregroundColor(AppColors.textDim)
+                    .tracking(0.4)
+            }
         }
-        .background(Color.appBackground)
+        .padding(.top, 32)
+        .padding(.horizontal, 24)
     }
 }

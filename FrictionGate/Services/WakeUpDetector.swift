@@ -1,26 +1,20 @@
 import Foundation
 import Combine
 
-/// Detects when the user wakes up after an idle period and exposes whether a
-/// post-wake block window is still active.
+/// Detects wake-up via foreground idle-gap as a **fallback only**.
 ///
-/// ## Algorithm (from architecture doc §7)
-/// 1. Every time the app foregrounds, call `appDidBecomeActive(settings:)`.
-///    The method always writes `lastActiveTimestamp = Date()` to the App Group
-///    `UserDefaults` so the detector has a reliable signal of phone activity.
-/// 2. On the same call, it checks whether the elapsed idle gap exceeds
-///    `AppSettings.wakeUpIdleHours`.
-/// 3. If yes **and** the current time is inside the configured wake-up window
-///    (e.g. 05:00–11:00), `wakeUpDetectedAt` is set to `Date()` and persisted.
-/// 4. `BlockingService` calls `isAfterWakeUpActive(durationMinutes:)` to decide
-///    whether an `.afterWakeUp` rule condition is currently enforcing a block.
+/// ## Priority of wake stamps (all write `wake_detected_at`)
+/// 1. PRIMARY: `SleepWakeDetector` (HealthKit sleep analysis end) — background
+/// 2. SECONDARY: DeviceActivity `fg-wakevent-*` (first monitored app use) — extension
+/// 3. FALLBACK: this class, on Friction foreground after idle + wake window
 ///
-/// ## Edge case: middle-of-night phone use
-/// The architecture doc notes that any phone use between, say, 01:00 and 05:00
-/// will reset `lastActiveTimestamp`, potentially suppressing the next morning's
-/// detection.  The time-of-day window guard (`wakeUpWindowStart/End`) mitigates
-/// this: a wake-up is only recognised if it falls inside the window, so nocturnal
-/// usage outside the window updates the timestamp without triggering a detection.
+/// Fix B: whichever path stamps first for a calendar day wins. Later Friction
+/// opens must not overwrite `wake_detected_at`.
+///
+/// ## Approximation honesty
+/// There is no public API for true physiological wake. Fallback wake time equals
+/// Friction open time — accurate only if the user opened Friction before other
+/// morning activity that HealthKit / DeviceActivity failed to observe.
 @MainActor
 final class WakeUpDetector: ObservableObject {
 
@@ -33,9 +27,10 @@ final class WakeUpDetector: ObservableObject {
         return d
     }()
 
-    private enum Keys {
-        static let lastActive   = "wake_last_active_timestamp"
-        static let detectedAt   = "wake_detected_at"
+    enum Keys {
+        static let lastActive      = "wake_last_active_timestamp"
+        static let detectedAt      = "wake_detected_at"
+        static let wakeWindowArmed = "wake_window_armed"
     }
 
     // MARK: - Published state
@@ -47,25 +42,71 @@ final class WakeUpDetector: ObservableObject {
     // MARK: - Init
 
     init() {
+        syncFromDefaults()
+    }
+
+    // MARK: - Sync / cleanup
+
+    /// Reloads in-memory state from App Group (extension / HK may have stamped).
+    func syncFromDefaults() {
+        clearStaleWakeStampIfNeeded()
         let stored = defaults.double(forKey: Keys.detectedAt)
         if stored > 0 {
             wakeUpDetectedAt = Date(timeIntervalSince1970: stored)
+        } else {
+            wakeUpDetectedAt = nil
         }
     }
 
-    // MARK: - Foreground callback
+    /// Supplementary midnight cleanup when Friction opens (primary reset is
+    /// `fg-wakemidnight-reset` DeviceActivity schedule).
+    func clearStaleWakeStampIfNeeded() {
+        let ts = defaults.double(forKey: Keys.detectedAt)
+        guard ts > 0 else { return }
+        let stamped = Date(timeIntervalSince1970: ts)
+        if !Calendar.current.isDateInToday(stamped) {
+            defaults.removeObject(forKey: Keys.detectedAt)
+            defaults.removeObject(forKey: Keys.wakeWindowArmed)
+            wakeUpDetectedAt = nil
+        }
+    }
+
+    var isWakeDetectedToday: Bool {
+        let ts = defaults.double(forKey: Keys.detectedAt)
+        guard ts > 0 else { return false }
+        return Calendar.current.isDateInToday(Date(timeIntervalSince1970: ts))
+    }
+
+    /// Records a wake stamp if none exists for today. Returns `true` if this call stamped.
+    @discardableResult
+    func recordWakeDetection(at date: Date) -> Bool {
+        clearStaleWakeStampIfNeeded()
+        guard !isWakeDetectedToday else { return false }
+
+        wakeUpDetectedAt = date
+        defaults.set(date.timeIntervalSince1970, forKey: Keys.detectedAt)
+        defaults.removeObject(forKey: Keys.wakeWindowArmed)
+        return true
+    }
+
+    // MARK: - Foreground callback (fallback stamp path)
 
     /// Must be called every time `scenePhase` changes to `.active` in
     /// `FrictionGateApp`.
     ///
     /// Always writes the current timestamp to `lastActiveTimestamp`, then
-    /// evaluates whether this foreground event qualifies as a wake-up.
+    /// evaluates whether this foreground event qualifies as a **fallback** wake.
     func appDidBecomeActive(settings: AppSettings) {
         let now = Date()
 
         // Always update the activity timestamp, even if detection is disabled,
         // so the idle gap stays accurate once detection is re-enabled.
         defer { defaults.set(now.timeIntervalSince1970, forKey: Keys.lastActive) }
+
+        syncFromDefaults()
+
+        // Fix B: once-per-day — HealthKit or DeviceActivity already stamped a better time.
+        if isWakeDetectedToday { return }
 
         guard settings.wakeUpDetectionEnabled else { return }
 
@@ -76,18 +117,34 @@ final class WakeUpDetector: ObservableObject {
         guard idleSeconds > threshold else { return }
         guard isWithinWakeUpWindow(settings: settings, at: now) else { return }
 
-        // Qualifies as a wake-up event.
-        wakeUpDetectedAt = now
-        defaults.set(now.timeIntervalSince1970, forKey: Keys.detectedAt)
+        // FALLBACK STAMP: only reached if HealthKit and DeviceActivity both failed
+        // to detect wake today. Wake time = Friction open time (degraded mode).
+        guard recordWakeDetection(at: now) else { return }
+
+        // Apply shields + schedule auto-expiry without requiring another open.
+        applyAfterWakeEffects(wakeDetectedAt: now)
+    }
+
+    /// Shared post-stamp work for main-app paths (fallback + HealthKit).
+    func applyAfterWakeEffects(wakeDetectedAt: Date) {
+        let rules = DeviceActivityService.loadAfterWakeUpRules(defaults: defaults)
+        DeviceActivityService.shared.scheduleAfterWakeExpiryForAllAfterWakeRules(
+            wakeDetectedAt: wakeDetectedAt
+        )
+        for rule in rules {
+            BlockingService.shared.evaluateAndApplyShield(
+                for: rule,
+                wakeUpDetector: self
+            )
+        }
     }
 
     // MARK: - Condition check
 
     /// Returns `true` if the device woke up recently and the post-wake block
     /// window of `durationMinutes` has not yet expired.
-    ///
-    /// Called by `BlockingService.isConditionActive(_:wakeUpDetector:)`.
     func isAfterWakeUpActive(durationMinutes: Int) -> Bool {
+        syncFromDefaults()
         guard let detected = wakeUpDetectedAt else { return false }
         return Date() < detected.addingTimeInterval(Double(durationMinutes) * 60)
     }

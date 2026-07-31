@@ -26,8 +26,7 @@ struct ConditionPickerView: View {
             beforeSleepSection
             dailyLimitSection
         }
-        .inkBackground()
-        .listStyle(.insetGrouped)
+        .builderListChrome()
         .onAppear { loadFromVM() }
         .onChange(of: twEnabled)      { _ in sync() }
         .onChange(of: twStart)        { _ in sync() }
@@ -47,79 +46,79 @@ struct ConditionPickerView: View {
     private var timeWindowSection: some View {
         Section {
             Toggle("Enable time window", isOn: $twEnabled)
+                .font(.system(size: 16))
             if twEnabled {
                 DatePicker("Start", selection: $twStart, displayedComponents: .hourAndMinute)
+                    .font(.system(size: 16))
                 DatePicker("End",   selection: $twEnd,   displayedComponents: .hourAndMinute)
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Days").foregroundStyle(Color.appSecondary)
+                    .font(.system(size: 16))
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Days")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundColor(AppColors.textSecondary)
                     DaySetPicker(selection: $twDays)
                 }
-                .padding(.vertical, 4)
+                .padding(.vertical, 6)
             }
         } header: {
-            Label("Time Window", systemImage: "clock")
-                .foregroundStyle(Color.appSecondary)
+            BuilderSectionHeader(title: "Time Window", icon: "clock")
         } footer: {
-            Text("Block the app between two times on the selected days.")
-                .foregroundStyle(Color.appTertiary)
+            BuilderSectionFooter(text: "Block the app between two times on the selected days.")
         }
-        .surfaceRow()
-        .listRowSeparatorTint(Color.appBorder)
+        .builderBlock()
     }
 
     private var afterWakeUpSection: some View {
         Section {
             Toggle("Enable after wake-up block", isOn: $wakeEnabled)
+                .font(.system(size: 16))
             if wakeEnabled {
                 Stepper("Duration: \(wakeMins) min", value: $wakeMins, in: 5...240, step: 5)
+                    .font(.system(size: 16))
                     .foregroundStyle(Color.appPrimary)
             }
         } header: {
-            Label("After Wake-Up", systemImage: "sunrise")
-                .foregroundStyle(Color.appSecondary)
+            BuilderSectionHeader(title: "After Wake-Up", icon: "sunrise")
         } footer: {
-            Text("Blocks the app for a set period after your phone detects you've woken up.")
-                .foregroundStyle(Color.appTertiary)
+            BuilderSectionFooter(text: "Blocks the app for a set period after your phone detects you've woken up.")
         }
-        .surfaceRow()
-        .listRowSeparatorTint(Color.appBorder)
+        .builderBlock()
     }
 
     private var beforeSleepSection: some View {
         Section {
             Toggle("Enable before-sleep block", isOn: $sleepEnabled)
+                .font(.system(size: 16))
             if sleepEnabled {
                 DatePicker("Sleep time", selection: $sleepTimeDC, displayedComponents: .hourAndMinute)
+                    .font(.system(size: 16))
                 Stepper("Duration: \(sleepDuration) min", value: $sleepDuration, in: 5...120, step: 5)
+                    .font(.system(size: 16))
                     .foregroundStyle(Color.appPrimary)
             }
         } header: {
-            Label("Before Sleep", systemImage: "moon")
-                .foregroundStyle(Color.appSecondary)
+            BuilderSectionHeader(title: "Before Sleep", icon: "moon")
         } footer: {
-            Text("Blocks the app for a set number of minutes before your configured sleep time.")
-                .foregroundStyle(Color.appTertiary)
+            BuilderSectionFooter(text: "Blocks the app for a set number of minutes before your configured sleep time.")
         }
-        .surfaceRow()
-        .listRowSeparatorTint(Color.appBorder)
+        .builderBlock()
     }
 
     private var dailyLimitSection: some View {
         Section {
             Toggle("Enable daily open limit", isOn: $limitEnabled)
+                .font(.system(size: 16))
             if limitEnabled {
                 Stepper("Max opens: \(limitMax)", value: $limitMax, in: 1...20)
+                    .font(.system(size: 16))
                     .foregroundStyle(Color.appPrimary)
             }
         } header: {
-            Label("Daily Open Limit", systemImage: "chart.bar")
-                .foregroundStyle(Color.appSecondary)
+            BuilderSectionHeader(title: "Daily Open Limit", icon: "chart.bar")
         } footer: {
-            Text("Blocks the app after it's been opened a set number of times today.")
-                .foregroundStyle(Color.appTertiary)
+            BuilderSectionFooter(text: "Blocks the app after it's been opened a set number of times today.")
         }
-        .surfaceRow()
-        .listRowSeparatorTint(Color.appBorder)
+        .builderBlock()
     }
 
     // MARK: - Sync
@@ -173,30 +172,30 @@ private struct DaySetPicker: View {
     ]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 ForEach(presets, id: \.label) { preset in
+                    let selected = selection == preset.value
                     Button(preset.label) { selection = preset.value }
                         .buttonStyle(.plain)
-                        .font(.caption.bold())
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(
-                            selection == preset.value
-                                ? Color.appAccent
-                                : Color.appSurface3
-                        )
-                        .foregroundStyle(
-                            selection == preset.value
-                                ? Color.appPrimary
-                                : Color.appSecondary
-                        )
+                        .font(.system(size: 12, weight: .medium))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(selected ? AppColors.accentMint : AppColors.inkDeep)
+                        .foregroundColor(selected ? AppColors.onAccent : AppColors.textSecondary)
                         .clipShape(Capsule())
+                        .overlay(
+                            Capsule().stroke(
+                                selected ? Color.clear : AppColors.inkBorder,
+                                lineWidth: 1
+                            )
+                        )
                 }
             }
 
-            HStack(spacing: 4) {
+            HStack(spacing: 6) {
                 ForEach(days, id: \.day.rawValue) { item in
+                    let selected = selection.contains(item.day)
                     Button(item.label) {
                         if selection.contains(item.day) {
                             selection.remove(item.day)
@@ -206,19 +205,15 @@ private struct DaySetPicker: View {
                     }
                     .buttonStyle(.plain)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 7)
-                    .background(
-                        selection.contains(item.day)
-                            ? Color.appAccent
-                            : Color.appSurface3
+                    .padding(.vertical, 10)
+                    .background(selected ? AppColors.accentMint : AppColors.inkDeep)
+                    .foregroundColor(selected ? AppColors.onAccent : AppColors.textSecondary)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(selected ? Color.clear : AppColors.inkBorder, lineWidth: 1)
                     )
-                    .foregroundStyle(
-                        selection.contains(item.day)
-                            ? Color.appPrimary
-                            : Color.appSecondary
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 7))
-                    .font(.caption.bold())
+                    .font(.system(size: 12, weight: .medium))
                 }
             }
         }
@@ -231,4 +226,3 @@ private struct DaySetPicker: View {
 private func dc(hour: Int, minute: Int = 0) -> DateComponents {
     DateComponents(hour: hour, minute: minute)
 }
-

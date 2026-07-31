@@ -5,112 +5,76 @@ struct TypeSentenceView: View {
     @ObservedObject var vm: UnlockViewModel
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 28) {
-                Spacer(minLength: 24)
+        VStack(alignment: .leading, spacing: 20) {
+            EyebrowLabel(text: "type to unlock")
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-                VStack(spacing: 10) {
-                    ZStack {
-                        Circle()
-                            .fill(Color.appAccentFill)
-                            .frame(width: 64, height: 64)
-                        Image(systemName: "keyboard")
-                            .font(.system(size: 28))
-                            .foregroundStyle(Color.appAccent)
-                    }
-                    Text("Type the sentence below exactly")
-                        .font(.headline)
-                        .foregroundStyle(Color.appPrimary)
-                    Text("Paste is disabled. Every character must be typed.")
-                        .font(.footnote)
-                        .foregroundStyle(Color.appSecondary)
-                        .multilineTextAlignment(.center)
-                }
+            Text(vm.requiredSentence)
+                .font(.system(size: 13))
+                .foregroundColor(AppColors.textMuted)
+                .lineSpacing(4)
+                .padding(16)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(AppColors.inkDeep)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(AppColors.inkBorder, lineWidth: 1)
+                )
 
-                Text(vm.requiredSentence)
-                    .font(.body)
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(Color.appPrimary)
-                    .padding()
-                    .frame(maxWidth: .infinity)
-                    .glassCard(cornerRadius: 14)
-                    .padding(.horizontal)
-
-                characterPreview
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Your input")
-                        .font(.caption)
-                        .foregroundStyle(Color.appSecondary)
-                        .padding(.horizontal, 20)
-
-                    PasteBlockingTextField(
-                        placeholder: "Start typing here…",
-                        text: $vm.typedSentence,
-                        font: .systemFont(ofSize: 16)
+            PasteBlockingTextField(
+                placeholder: "type exactly as above",
+                text: $vm.typedSentence,
+                font: .systemFont(ofSize: 13)
+            )
+            .frame(height: 100)
+            .padding(16)
+            .background(AppColors.inkSurface)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(
+                        vm.sentenceMatchesRequired ? AppColors.accentMint : AppColors.inkBorder,
+                        lineWidth: 1
                     )
-                    .frame(height: 44)
-                    .padding(.horizontal)
-                    .background(Color.appSurface3)
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14)
-                            .stroke(borderColor, lineWidth: borderColor == Color.clear ? 0 : 1.5)
-                    )
-                    .padding(.horizontal)
-                }
+            )
 
-                Button {
-                    vm.submitSentenceChallenge()
-                } label: {
-                    Label("Confirm", systemImage: "checkmark.circle.fill")
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .font(.headline)
-                        .foregroundStyle(vm.sentenceMatchesRequired ? Color.appOnAccent : Color.appTertiary)
-                }
-                .background(vm.sentenceMatchesRequired ? Color.appAccent : Color.appSurface2)
-                .clipShape(RoundedRectangle(cornerRadius: 14))
-                .disabled(!vm.sentenceMatchesRequired)
-                .padding(.horizontal)
-
+            HStack {
+                Text("\(vm.typedSentence.count) / \(vm.requiredSentence.count)")
+                    .font(.system(size: 10))
+                    .foregroundColor(AppColors.textDim)
+                    .tracking(0.4)
                 Spacer()
-            }
-            .padding(.vertical)
-        }
-        .background(Color.appBackground)
-    }
-
-    // MARK: - Character preview
-
-    private var characterPreview: some View {
-        let reqChars   = Array(vm.requiredSentence)
-        let typedChars = Array(vm.typedSentence)
-
-        return ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 1) {
-                ForEach(reqChars.indices, id: \.self) { i in
-                    let reqChar   = reqChars[i]
-                    let typedChar = i < typedChars.count ? typedChars[i] : nil
-                    let isMatch   = typedChar == reqChar
-
-                    Text(String(reqChar))
-                        .font(.system(.caption, design: .monospaced))
-                        .foregroundStyle(
-                            typedChar == nil ? Color.appTertiary
-                            : isMatch ? Color.appSuccess : Color.appDestructive
-                        )
-                        .padding(.vertical, 2)
-                        .frame(minWidth: 10)
+                if vm.sentenceMatchesRequired {
+                    Text("matched")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(AppColors.accentMint)
+                        .tracking(0.6)
+                        .textCase(.uppercase)
                 }
             }
-            .padding(.horizontal)
-        }
-        .frame(height: 28)
-    }
 
-    private var borderColor: Color {
-        if vm.typedSentence.isEmpty { return Color.clear }
-        return vm.sentenceMatchesRequired ? Color.appSuccess : Color.appAccent
+            Button {
+                vm.submitSentenceChallenge()
+            } label: {
+                Text("confirm")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(vm.sentenceMatchesRequired ? AppColors.onAccent : AppColors.textDim)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(vm.sentenceMatchesRequired ? AppColors.accentMint : AppColors.inkSurface)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(
+                                vm.sentenceMatchesRequired ? Color.clear : AppColors.inkBorder,
+                                lineWidth: 1
+                            )
+                    )
+            }
+            .disabled(!vm.sentenceMatchesRequired)
+        }
+        .padding(.top, 32)
+        .padding(.horizontal, 24)
     }
 }

@@ -165,16 +165,16 @@ struct FrictionGateApp: App {
 
     private static func configureGlobalAppearance() {
         let nav = UINavigationBarAppearance()
-        nav.configureWithDefaultBackground()
+        nav.configureWithOpaqueBackground()
         nav.backgroundColor = AppColors.uiNavBackground
         nav.shadowColor     = AppColors.uiNavShadow
         nav.largeTitleTextAttributes = [
             .foregroundColor: AppColors.uiTextPrimary,
-            .font: UIFont.systemFont(ofSize: 26, weight: .bold)
+            .font: UIFont.systemFont(ofSize: 26, weight: .medium)
         ]
         nav.titleTextAttributes = [
             .foregroundColor: AppColors.uiTextPrimary,
-            .font: UIFont.systemFont(ofSize: 17, weight: .semibold)
+            .font: UIFont.systemFont(ofSize: 17, weight: .medium)
         ]
         UINavigationBar.appearance().standardAppearance    = nav
         UINavigationBar.appearance().scrollEdgeAppearance  = nav
@@ -199,6 +199,8 @@ struct FrictionGateApp: App {
                     Self.startupLog("Notification request completed")
                     wireNotificationDelegate()
                     Self.startupLog("Notification delegate wired")
+                    SleepWakeDetector.shared.start(wakeUpDetector: wakeUpDetector)
+                    DeviceActivityService.shared.ensureMidnightWakeResetSchedule()
                     Self.startupLog("Startup task end")
                 }
                 .onOpenURL { handleURL($0) }
@@ -323,6 +325,19 @@ struct FrictionGateApp: App {
     private func reapplyShieldsForExpiredSessions() {
         guard let defaults = UserDefaults(suiteName: "group.com.debrajpal.frictiongate")
         else { return }
+
+        // One-time recovery: CompactToggle previously opened Unlock while unblocked
+        // and wrote session_expires, which skipped shield re-eval. Clear those so
+        // conditions can block again immediately. Legitimate mid-session unlocks
+        // are also cleared once — acceptable to close the leak.
+        let recoveryKey = "fg_cleared_spurious_unlock_sessions_v1"
+        if !defaults.bool(forKey: recoveryKey) {
+            for rule in ruleStore.rules {
+                defaults.removeObject(forKey: "session_expires_\(rule.id.uuidString)")
+                DeviceActivityService.shared.cancelSessionRelock(for: rule.id)
+            }
+            defaults.set(true, forKey: recoveryKey)
+        }
 
         let now = Date()
 

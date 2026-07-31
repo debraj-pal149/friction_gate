@@ -289,7 +289,16 @@ final class UnlockViewModel: ObservableObject {
     // MARK: - Challenge lifecycle
 
     private func startChallenge(at index: Int) {
-        guard index < scaledChallenges.count else {
+        // Past the end of a non-empty list → all challenges done.
+        if index >= scaledChallenges.count {
+            if scaledChallenges.isEmpty {
+                // Empty challenge list: only lift a real shield. Never invent a
+                // free session for an app that wasn't blocked (UI leak).
+                if blockingService.isShielded(rule) {
+                    completeAllChallenges()
+                }
+                return
+            }
             completeAllChallenges()
             return
         }
@@ -421,33 +430,33 @@ final class UnlockViewModel: ObservableObject {
     // MARK: - Completion
 
     private func completeAllChallenges() {
-        // Remove the ManagedSettings shield so the app can open immediately.
+        let wasShielded = blockingService.isShielded(rule)
+
+        // Always clear any shield for this rule.
         blockingService.removeShield(for: rule)
 
-        // Grant the user a session — write expiry to App Group UserDefaults so
-        // both the main app and the DeviceActivity extension can respect it.
-        let sessionExpiry = Date().addingTimeInterval(Double(rule.sessionDurationMinutes) * 60)
-        UserDefaults(suiteName: "group.com.debrajpal.frictiongate")?
-            .set(sessionExpiry.timeIntervalSince1970,
-                 forKey: "session_expires_\(rule.id.uuidString)")
+        // Only grant a free session when we actually lifted a block.
+        // Opening Unlock while unblocked (home toggle bug) used to write
+        // session_expires and skip evaluateAndApplyShield for the full
+        // session window — apps that should be blocked stayed open.
+        if wasShielded {
+            let sessionExpiry = Date().addingTimeInterval(Double(rule.sessionDurationMinutes) * 60)
+            UserDefaults(suiteName: "group.com.debrajpal.frictiongate")?
+                .set(sessionExpiry.timeIntervalSince1970,
+                     forKey: "session_expires_\(rule.id.uuidString)")
 
-        // Schedule a DeviceActivity relock that fires at the exact session-expiry
-        // moment — this re-locks the app even while the user is still inside it,
-        // without requiring Friction to be in the foreground.
-        DeviceActivityService.shared.scheduleSessionRelock(for: rule)
+            DeviceActivityService.shared.scheduleSessionRelock(for: rule)
 
-        // Update the rule's unlock bookkeeping.
-        var updatedRule = rule
-        updatedRule.lastUnlockedAt = Date()
-        updatedRule.unlockCount   += 1
-        ruleStore.update(updatedRule)
+            var updatedRule = rule
+            updatedRule.lastUnlockedAt = Date()
+            updatedRule.unlockCount   += 1
+            ruleStore.update(updatedRule)
 
-        // Record the unlock in the escalation state machine.
-        var updatedAttempt = ruleStore.attempt(for: rule.id)
-        updatedAttempt.recordUnlock(escalationWindowMinutes: rule.escalationWindowMinutes)
-        ruleStore.saveAttempt(updatedAttempt)
+            var updatedAttempt = ruleStore.attempt(for: rule.id)
+            updatedAttempt.recordUnlock(escalationWindowMinutes: rule.escalationWindowMinutes)
+            ruleStore.saveAttempt(updatedAttempt)
+        }
 
-        // Clear the "pending unlock" flag that the shield extension wrote.
         UserDefaults(suiteName: "group.com.debrajpal.frictiongate")?
             .removeObject(forKey: "pending_unlock_rule_id")
 

@@ -14,132 +14,122 @@ struct RuleBuilderView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                stepIndicator
-                Divider()
-                    .background(Color.appBorder)
+        VStack(spacing: 0) {
+            stepHeader
 
-                Group {
-                    switch vm.currentStep {
-                    case .appPicker:
-                        AppPickerView(vm: vm)
-                    case .conditionPicker:
-                        ConditionPickerView(vm: vm)
-                    case .challengePicker:
-                        ChallengePickerView(vm: vm)
-                    case .escalation:
-                        EscalationPickerView(vm: vm)
-                    case .review:
-                        RuleReviewView(vm: vm, onSave: {
-                            if vm.save() {
-                                dismiss()
-                            }
-                        })
-                    }
-                }
-            }
-            .navigationTitle(stepTitle)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    if vm.currentStep == .appPicker {
-                        Button("Cancel") {
-                            vm.reset()
+            Rectangle()
+                .fill(AppColors.inkDeep)
+                .frame(height: 1)
+
+            Group {
+                switch vm.currentStep {
+                case .appPicker:
+                    AppPickerView(vm: vm)
+                case .conditionPicker:
+                    ConditionPickerView(vm: vm)
+                case .challengePicker:
+                    ChallengePickerView(vm: vm)
+                case .escalation:
+                    EscalationPickerView(vm: vm)
+                case .review:
+                    RuleReviewView(vm: vm, onSave: {
+                        if vm.save() {
                             dismiss()
                         }
-                        .foregroundStyle(Color.appDestructive)
-                    } else {
-                        Button("Back") { vm.previousStep() }
-                            .foregroundStyle(Color.appAccent)
+                    })
+                }
+            }
+
+            if vm.currentStep != .review {
+                bottomNav
+            }
+        }
+        .background(AppColors.inkBase)
+        .preferredColorScheme(.dark)
+        .alert(
+            "Overlapping Rule",
+            isPresented: Binding(
+                get: { vm.ruleConflictMessage != nil },
+                set: { if !$0 { vm.ruleConflictMessage = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) {
+                vm.ruleConflictMessage = nil
+            }
+        } message: {
+            Text(vm.ruleConflictMessage ?? "")
+        }
+    }
+
+    // MARK: - Step header
+
+    private var stepHeader: some View {
+        HStack {
+            Text("step \(vm.currentStep.rawValue + 1) of \(BuilderStep.allCases.count)")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(AppColors.textSecondary)
+                .tracking(0.8)
+                .textCase(.uppercase)
+            Spacer()
+            Button("cancel") {
+                vm.reset()
+                dismiss()
+            }
+            .font(.system(size: 14))
+            .foregroundColor(AppColors.blockedText)
+        }
+        .padding(.horizontal, 24)
+        .padding(.vertical, 18)
+        .background(AppColors.inkBase)
+    }
+
+    // MARK: - Bottom nav
+
+    private var bottomNav: some View {
+        VStack(spacing: 0) {
+            Rectangle()
+                .fill(AppColors.inkDeep)
+                .frame(height: 1)
+
+            HStack {
+                if vm.currentStep != .appPicker {
+                    Button {
+                        vm.previousStep()
+                    } label: {
+                        Text("back")
+                            .font(.system(size: 16))
+                            .foregroundColor(AppColors.textSecondary)
                     }
                 }
-                ToolbarItem(placement: .topBarTrailing) {
-                    if vm.currentStep != .review {
-                        Button("Next") { vm.nextStep() }
-                            .disabled(!vm.canAdvance)
-                            .bold()
-                            .foregroundStyle(vm.canAdvance ? Color.appAccent : Color.appTertiary)
-                    }
+                Spacer()
+                Button {
+                    vm.nextStep()
+                } label: {
+                    Text("next")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(vm.canAdvance ? AppColors.onAccent : AppColors.textMuted)
+                        .padding(.horizontal, 28)
+                        .padding(.vertical, 14)
+                        .background(vm.canAdvance ? AppColors.accentMint : AppColors.inkSurface)
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(vm.canAdvance ? Color.clear : AppColors.inkBorder, lineWidth: 1)
+                        )
                 }
+                .disabled(!vm.canAdvance)
             }
-            .alert(
-                "Overlapping Rule",
-                isPresented: Binding(
-                    get: { vm.ruleConflictMessage != nil },
-                    set: { if !$0 { vm.ruleConflictMessage = nil } }
-                )
-            ) {
-                Button("OK", role: .cancel) {
-                    vm.ruleConflictMessage = nil
-                }
-            } message: {
-                Text(vm.ruleConflictMessage ?? "")
+            .padding(.horizontal, 24)
+            .padding(.vertical, 18)
+
+            if !vm.canAdvance {
+                Text(vm.validationMessage)
+                    .font(.system(size: 14))
+                    .foregroundColor(AppColors.textSecondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.bottom, 10)
             }
         }
-    }
-
-    // MARK: - Step indicator
-
-    private var stepIndicator: some View {
-        HStack(spacing: 0) {
-            ForEach(BuilderStep.allCases, id: \.rawValue) { step in
-                stepDot(step)
-                if step != .review {
-                    Rectangle()
-                        .fill(step.rawValue < vm.currentStep.rawValue
-                              ? Color.appAccent
-                              : Color.appSurface2)
-                        .frame(height: 2)
-                }
-            }
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 14)
-        .background(Color.appBackground)
-    }
-
-    private func stepDot(_ step: BuilderStep) -> some View {
-        let isActive    = step == vm.currentStep
-        let isCompleted = step.rawValue < vm.currentStep.rawValue
-
-        return ZStack {
-            Circle()
-                .fill(isCompleted
-                      ? Color.appAccent
-                      : (isActive ? Color.appAccent : Color.appSurface2))
-                .frame(width: 28, height: 28)
-                .overlay(
-                    Circle()
-                        .stroke(isActive && !isCompleted
-                                ? Color.appAccent.opacity(0.3) : Color.clear,
-                                lineWidth: 2)
-                        .frame(width: 34, height: 34)
-                )
-                .shadow(
-                    color: (isActive || isCompleted) ? Color.appAccent.opacity(0.45) : Color.clear,
-                    radius: isActive ? 8 : 4, x: 0, y: 0
-                )
-
-            if isCompleted {
-                Image(systemName: "checkmark")
-                    .font(.caption2.bold())
-                    .foregroundStyle(Color.appOnAccent)
-            } else {
-                Text("\(step.rawValue + 1)")
-                    .font(.caption2.bold())
-                    .foregroundStyle(isActive ? Color.appOnAccent : Color.appTertiary)
-            }
-        }
-    }
-
-    private var stepTitle: String {
-        switch vm.currentStep {
-        case .appPicker:       return "Choose App"
-        case .conditionPicker: return "When to Block"
-        case .challengePicker: return "Unlock Challenge"
-        case .escalation:      return "Session & Escalation"
-        case .review:          return "Review Rule"
-        }
+        .background(AppColors.inkBase)
     }
 }

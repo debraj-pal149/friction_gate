@@ -30,7 +30,9 @@ struct ContentView: View {
                 }
             }
             .preferredColorScheme(appState.colorSchemeOverride)
-            .tint(Color.appAccent)
+            // System toggles/links use mint. Custom CTAs always pair
+            // accentMint fill with onAccent (#040a07) text — never .borderedProminent.
+            .tint(AppColors.accentMint)
             .onAppear {
                 startupLog(
                     "ContentView appear | onboarding=\(appState.hasShownOnboarding) " +
